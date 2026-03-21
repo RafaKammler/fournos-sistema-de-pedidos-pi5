@@ -1,0 +1,20 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js" // O provider correto é prisma-client-js
+  // output é opcional. Se remover, o Prisma salva em node_modules/@prisma/client (padrão)
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Essencial para ler do seu arquivo .env
+}
+
+// Exemplo de modelo para teste
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+  createdAt DateTime @default(now())
+}
