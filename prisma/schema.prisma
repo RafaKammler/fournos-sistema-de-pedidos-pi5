@@ -8,13 +8,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Essencial para ler do seu arquivo .env
 }
 
-// Exemplo de modelo para teste
-model User {
+model Usuario {
   id    Int     @id @default(autoincrement())
+  nome String
   email String  @unique
-  name  String?
-  createdAt DateTime @default(now())
+  senha String
+  perfil String // A - Admin, U - Usuário
+  dataCadastro DateTime @default(now())
 }

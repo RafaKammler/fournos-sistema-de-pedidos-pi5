@@ -17,9 +17,10 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <img src="/img.png" alt="Fournos logo" className="w-28 h-auto" />
+          <h1 className="text-2xl font-bold">Faça Login em sua Conta</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Enter your email below to login to your account
+            Insira seu e-mail abaixo para acessar sua conta
           </p>
         </div>
         <Field>
@@ -28,12 +29,12 @@ export function LoginForm({
         </Field>
         <Field>
           <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">Senha</FieldLabel>
             <a
               href="#"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
-              Forgot your password?
+              Esqueceu sua senha?
             </a>
           </div>
           <Input id="password" type="password" required />
@@ -43,9 +44,9 @@ export function LoginForm({
         </Field>
         <Field>
           <FieldDescription className="text-center">
-            Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
-              Sign up
+            Não possui uma conta?{" "}
+            <a href="/register" className="underline underline-offset-4">
+              Cadastre-se
             </a>
           </FieldDescription>
         </Field>
