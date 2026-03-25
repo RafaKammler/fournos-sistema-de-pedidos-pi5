@@ -1,7 +1,6 @@
 "use client"
 
 import { LoginForm } from "@/components/login-form"
-import { GalleryVerticalEndIcon } from "lucide-react"
 import {ModeToggle} from "@/components/ui/mode-toggle";
 
 export default function LoginPage() {
@@ -21,9 +20,9 @@ export default function LoginPage() {
       </div>
       <div className="relative hidden bg-muted lg:block">
         <img
-          src="/img.png"
+          src="/graosCafePretoBranco.png"
           alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          className="absolute inset-0 w-full object-cover object-bottom dark:brightness-[0.2]"
         />
       </div>
     </div>
