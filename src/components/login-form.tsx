@@ -13,8 +13,20 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+
+  async function handleSubmit(e: React.SubmitEvent){
+e.preventDefault()
+    const res = await fetch("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
+
+    const data = await res.json()
+    console.log(data)
+  }
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <img src="/img.png" alt="Fournos logo" className="w-28 h-auto" />
