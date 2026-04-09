@@ -1,13 +1,20 @@
-    FROM node:20-alpine
+FROM node:20-alpine
 
-    WORKDIR /app
+WORKDIR /app
 
-    COPY package.json package-lock.json* ./
+ENV NODE_ENV=development
 
-    RUN npm install
+EXPOSE 3000 9229
 
-    COPY . .
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma
 
-    EXPOSE 3000
+RUN npm ci
 
-    CMD ["npm", "run", "dev"]
+RUN npx prisma generate
+
+COPY . .
+
+ENV NODE_OPTIONS="--inspect=0.0.0.0:9229"
+
+CMD ["npm", "run", "dev"]

@@ -2,8 +2,7 @@
 
 generator client {
   provider = "prisma-client-js" // O provider correto é prisma-client-js
-  // output é opcional. Se remover, o Prisma salva em node_modules/@prisma/client (padrão)
-  // output   = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
