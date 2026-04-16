@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+
 import {
   Field,
   FieldDescription,
@@ -14,6 +17,7 @@ export function LoginForm({
                             ...props
                           }: React.ComponentProps<"form">) {
 
+  const router = useRouter()
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>){
     e.preventDefault()
 
@@ -28,8 +32,14 @@ export function LoginForm({
       body: JSON.stringify({ email, senha }),
     })
 
-    const data = await res.json()
-    console.log(data)
+  if(res.ok){
+    router.push("/home")
+  }else{
+    toast("Login Falhou", {
+      description: "O login falhou, verifique suas informações e tente novamente.",
+    })
+  }
+
   }
 
   return (
