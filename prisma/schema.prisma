@@ -1,7 +1,6 @@
 // prisma/schema.prisma
-
 generator client {
-  provider = "prisma-client-js" // O provider correto é prisma-client-js
+  provider = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -9,11 +8,38 @@ datasource db {
   provider = "postgresql"
 }
 
+  enum Perfil {
+  A // Admin
+  U // Usuario
+  G // Gerente
+}
+
 model Usuario {
-  id    Int     @id @default(autoincrement())
-  nome String
-  email String  @unique
-  senha String
-  perfil String // A - Admin, U - Usuário
+  id          Int       @id @default(autoincrement())
+  nome        String
+  email       String    @unique
+  senha       String
+  perfil      Perfil
   dataCadastro DateTime @default(now())
+
+  gerente     Gerente?
+}
+
+model Gerente {
+  id               Int             @id @default(autoincrement())
+  usuarioId        Int             @unique
+  usuario          Usuario         @relation(fields: [usuarioId], references: [id])
+  estabelecimentoId Int?
+  estabelecimento  Estabelecimento? @relation(fields: [estabelecimentoId], references: [id])
+  dataCadastro     DateTime        @default(now())
+}
+
+model Estabelecimento {
+  id           Int       @id @default(autoincrement())
+  descricao    String
+  cnpj         String    @unique
+  telefone     String
+  caminhoImagem String
+  dataCadastro DateTime @default(now())
+  gerentes     Gerente[]
 }
