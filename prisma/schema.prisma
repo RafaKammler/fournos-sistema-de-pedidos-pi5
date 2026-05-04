@@ -36,10 +36,12 @@ model Gerente {
 
 model Estabelecimento {
   id           Int       @id @default(autoincrement())
+  nome         String
   descricao    String
   cnpj         String    @unique
   telefone     String
   caminhoImagem String
+  cep          String
   dataCadastro DateTime @default(now())
   gerentes     Gerente[]
 }
