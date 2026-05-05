@@ -28,7 +28,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
         const res = await fetch("/api/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome, email, senha, perfil: "user" }),
+            body: JSON.stringify({ nome, email, senha, perfil: "U" }),
         })
         const data = await res.json()
         console.log(data)

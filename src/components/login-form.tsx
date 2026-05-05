@@ -18,6 +18,7 @@ export function LoginForm({
                           }: React.ComponentProps<"form">) {
 
   const router = useRouter()
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>){
     e.preventDefault()
 
@@ -32,14 +33,20 @@ export function LoginForm({
       body: JSON.stringify({ email, senha }),
     })
 
-  if(res.ok){
-    router.push("/home")
-  }else{
-    toast("Login Falhou", {
-      description: "O login falhou, verifique suas informações e tente novamente.",
-    })
-  }
+    if(res.ok){
+      const data = await res.json()
 
+      if (data.usuario?.perfil === 'A' || data.perfil === 'A') {
+        router.push("/restrito/cadastroEstabelecimento")
+      } else {
+        router.push("/home")
+      }
+
+    } else {
+      toast("Login Falhou", {
+        description: "O login falhou, verifique suas informações e tente novamente.",
+      })
+    }
   }
 
   return (
