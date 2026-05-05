@@ -8,10 +8,10 @@ datasource db {
   provider = "postgresql"
 }
 
-  enum Perfil {
-  A // Admin
-  U // Usuario
-  G // Gerente
+enum Perfil {
+  ADMIN
+  USUARIO
+  GERENTE
 }
 
 model Usuario {

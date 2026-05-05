@@ -7,13 +7,20 @@ import {
     FieldDescription,
     FieldGroup,
     FieldLabel,
-    FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+
 export function SignupForm({ className, ...props }: React.ComponentProps<"form">) {
+    const router = useRouter()
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
+
+        const toastId = toast.loading("Criando sua conta...")
+
         const formData = new FormData(e.currentTarget)
         const nome     = String(formData.get("name") ?? "")
         const email    = String(formData.get("email") ?? "")
@@ -21,17 +28,28 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
         const confirm  = String(formData.get("confirm-password") ?? "")
 
         if (senha !== confirm) {
-            alert("As senhas não coincidem")
+            toast.error("As senhas não coincidem", { id: toastId })
             return
         }
 
-        const res = await fetch("/api/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome, email, senha, perfil: "U" }),
-        })
-        const data = await res.json()
-        console.log(data)
+        try {
+            const res = await fetch("/api/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nome, email, senha, perfil: "USUARIO" }),
+            })
+
+            const data = await res.json()
+
+            if (res.ok) {
+                toast.success(data.message || "Conta criada com sucesso!", { id: toastId })
+                router.push("/login")
+            } else {
+                toast.error(data.message || "Erro ao criar conta", { id: toastId })
+            }
+        } catch (error) {
+            toast.error("Erro de conexão. Tente novamente.", { id: toastId })
+        }
     }
 
     return (
@@ -46,11 +64,11 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
                 </div>
                 <Field>
                     <FieldLabel htmlFor="name">Nome completo</FieldLabel>
-                    <Input id="name" name="name" type="text" placeholder="Layne Staley" required />
+                    <Input id="name" name="name" type="text" placeholder="Seu Nome..." required />
                 </Field>
                 <Field>
                     <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <Input id="email" name="email" type="email" placeholder="chris@example.com" required />
+                    <Input id="email" name="email" type="email" placeholder="email@exemplo.com" required />
                 </Field>
                 <Field>
                     <FieldLabel htmlFor="password">Senha</FieldLabel>
@@ -66,7 +84,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
                 </Field>
                 <Field>
                     <FieldDescription className="px-6 text-center">
-                        Já possui uma conta? <a href="/login">Login</a>
+                        Já possui uma conta? <a href="/login" className="underline hover:text-primary">Login</a>
                     </FieldDescription>
                 </Field>
             </FieldGroup>
