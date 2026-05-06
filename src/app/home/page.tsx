@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/ui/navbar";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import { getSession } from "@/lib/auth";
 
 function formatarTelefone(telefone: string) {
     if (!telefone) return "";
@@ -23,14 +24,21 @@ function formatarCep(cep: string) {
 }
 
 export default async function HomePage() {
-    const estabelecimentos = await prisma.estabelecimento.findMany({
-        orderBy: {
-            dataCadastro: 'desc'
-        }
-    });
+    const estabelecimentos = await prisma.estabelecimento.findMany({ /* ... */ });
 
-    const usuarioLogado = await prisma.usuario.findFirst();
-    const nomeExibicao = usuarioLogado ? usuarioLogado.nome : "Visitante";
+    const session = await getSession();
+    let nomeExibicao = "Visitante";
+
+    if (session && session.sub) {
+        const usuarioLogado = await prisma.usuario.findUnique({
+            where: { id: parseInt(session.sub as string) }
+        });
+
+        if (usuarioLogado) {
+            nomeExibicao = usuarioLogado.nome.split(' ')[0];
+        }
+    }
+
 
     return (
         <div className="min-h-screen bg-background">
