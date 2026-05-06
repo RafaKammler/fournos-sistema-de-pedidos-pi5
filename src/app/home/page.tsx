@@ -41,8 +41,6 @@ export default async function HomePage() {
                     alt: "Fournos Logo",
                     title: "Fournos",
                 }}
-                location="Erechim"
-                time="8:02 PM"
             />
 
             <main className="container mx-auto p-6 md:p-10">

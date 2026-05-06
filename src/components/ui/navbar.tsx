@@ -2,6 +2,8 @@
 
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { useLocationTime } from "@/app/hooks/useLocationTime";
 
 interface MenuItem {
     title: string;
@@ -20,11 +22,8 @@ interface NavbarProps {
         login: { title: string; url: string };
         signup: { title: string; url: string };
     };
-    location?: string;
-    time?: string;
 }
 
-// Animated nav link with slide-up text effect on hover
 const AnimatedNavLink = ({
                              item,
                              isActive = false,
@@ -38,7 +37,6 @@ const AnimatedNavLink = ({
             className="relative group flex flex-col overflow-hidden h-5 items-center"
             style={{ perspective: "100px" }}
         >
-            {/* Default label */}
             <span
                 className={`
           text-sm tracking-wide transition-all duration-300 ease-out
@@ -47,10 +45,9 @@ const AnimatedNavLink = ({
         `}
                 style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }}
             >
-        {item.title}
-      </span>
+                {item.title}
+            </span>
 
-            {/* Hover label (slides up from below) */}
             <span
                 className={`
           absolute top-full text-sm tracking-wide font-medium text-foreground
@@ -61,10 +58,9 @@ const AnimatedNavLink = ({
                 style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }}
                 aria-hidden
             >
-        {item.title}
-      </span>
+                {item.title}
+            </span>
 
-            {/* Active underline */}
             {isActive && (
                 <span className="absolute bottom-0 left-0 w-full h-px bg-foreground" />
             )}
@@ -89,38 +85,34 @@ const Navbar = ({
                         login: { title: "Login", url: "/login" },
                         signup: { title: "Sign up", url: "/signup" },
                     },
-                    location = "Brisbane",
-                    time = "8:24 PM",
                 }: NavbarProps) => {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { location, time, loading } = useLocationTime();
+
+    const locationDisplay = loading ? "..." : `${location}  /  ${time}`;
 
     return (
         <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-6">
+
                 {/* Desktop */}
                 <nav className="hidden lg:flex items-center justify-between h-16">
-                    {/* Logo */}
                     <a href={logo.url} className="flex items-center gap-2 shrink-0">
-                        <img
-                            src={logo.src}
-                            alt={logo.alt}
-                            className="h-7 w-7 dark:invert"
-                        />
-                        <span className="text-sm font-semibold tracking-tight">
-              {logo.title}
-            </span>
+                        <img src={logo.src} alt={logo.alt} className="h-7 w-7 dark:invert" />
+                        <span className="text-sm font-semibold tracking-tight">{logo.title}</span>
                     </a>
 
-                    {/* Center nav */}
                     <div className="flex items-center gap-8">
                         {menu.map((item, i) => (
                             <AnimatedNavLink key={item.title} item={item} isActive={i === 0} />
                         ))}
                     </div>
 
-                    {/* Right: location/time */}
-                    <div className="text-sm text-muted-foreground tabular-nums tracking-wide">
-                        {location}&nbsp;&nbsp;/&nbsp;&nbsp;{time}
+                    <div className="flex items-center gap-6">
+                        <div className="text-sm text-muted-foreground tabular-nums tracking-wide">
+                            {locationDisplay}
+                        </div>
+                        <ModeToggle />
                     </div>
                 </nav>
 
@@ -130,12 +122,16 @@ const Navbar = ({
                         <img src={logo.src} alt={logo.alt} className="h-7 w-7 dark:invert" />
                         <span className="text-sm font-semibold">{logo.title}</span>
                     </a>
-                    <button
-                        onClick={() => setMobileOpen(!mobileOpen)}
-                        className="p-2 rounded-md hover:bg-muted transition-colors"
-                    >
-                        {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                        <ModeToggle />
+                        <button
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            className="p-2 rounded-md hover:bg-muted transition-colors"
+                        >
+                            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile drawer */}
@@ -152,6 +148,12 @@ const Navbar = ({
                                 {item.title}
                             </a>
                         ))}
+
+                        {/* Localização no mobile drawer */}
+                        <div className="mt-2 px-2 text-xs text-muted-foreground tabular-nums">
+                            {locationDisplay}
+                        </div>
+
                         <div className="mt-4 flex flex-col gap-2">
                             <a
                                 href={auth.login.url}

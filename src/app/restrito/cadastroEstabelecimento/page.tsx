@@ -27,7 +27,7 @@ export default function CadastroEstabelecimentoPage() {
     const [errors, setErrors] = useState<Partial<Record<keyof FormState | 'imagem', string>>>({})
 
     const [loading, setLoading] = useState(false)
-    const [loadingCep, setLoadingCep] = useState(false) // NOVO: Estado para o loading do botão de CEP
+    const [loadingCep, setLoadingCep] = useState(false)
     const [message, setMessage] = useState<string | null>(null)
 
     function cleanDigits(s: string) { return s.replace(/\D/g, "") }
@@ -84,7 +84,7 @@ export default function CadastroEstabelecimentoPage() {
         }
 
         setLoadingCep(true)
-        setErrors((e) => ({ ...e, cep: undefined })) // Limpa erros anteriores do CEP
+        setErrors((e) => ({ ...e, cep: undefined }))
 
         try {
             const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`)
@@ -93,12 +93,11 @@ export default function CadastroEstabelecimentoPage() {
             if (data.erro) {
                 setErrors((e) => ({ ...e, cep: "CEP não encontrado." }))
             } else {
-                // Atualiza o formulário com os dados da API
                 setForm((s) => ({
                     ...s,
-                    rua: data.logradouro || s.rua,     // Logradouro é a rua
-                    cidade: data.localidade || s.cidade, // Localidade é a cidade
-                    estado: data.uf || s.estado          // UF é o estado
+                    rua: data.logradouro || s.rua,
+                    cidade: data.localidade || s.cidade,
+                    estado: data.uf || s.estado
                 }))
             }
         } catch (error) {
@@ -183,23 +182,23 @@ export default function CadastroEstabelecimentoPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900">
+        <div className="min-h-screen bg-background text-foreground">
             <Navbar />
             <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Cadastro de Restaurante</h1>
-                    <p className="mt-2 text-sm text-gray-500">
+                    <h1 className="text-3xl font-bold tracking-tight">Cadastro de Restaurante</h1>
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Preencha as informações abaixo para registrar um novo estabelecimento na plataforma.
                     </p>
                 </div>
 
-                <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl sm:rounded-2xl overflow-hidden">
+                <div className="bg-card text-card-foreground shadow-sm ring-1 ring-border rounded-xl sm:rounded-2xl overflow-hidden">
                     <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8" noValidate>
 
                         <FieldGroup className="space-y-6">
-                            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Dados Principais</h2>
+                            <h2 className="text-lg font-semibold border-b border-border pb-2 mb-4">Dados Principais</h2>
 
-                            <Field className="flex flex-col items-center border-b border-gray-100 pb-8 mb-6">
+                            <Field className="flex flex-col items-center border-b border-border pb-8 mb-6">
                                 <FieldLabel htmlFor="imagem" className="font-medium text-lg mb-4">
                                     Foto do Estabelecimento
                                 </FieldLabel>
@@ -208,21 +207,21 @@ export default function CadastroEstabelecimentoPage() {
                                         <img
                                             src={previewUrl}
                                             alt="Preview do Estabelecimento"
-                                            className="w-64 h-64 object-cover rounded-xl border border-gray-200 shadow-sm"
+                                            className="w-64 h-64 object-cover rounded-xl border border-border shadow-sm"
                                         />
                                     ) : (
-                                        <div className="w-64 h-64 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors p-4 text-center">
-                                            <svg className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <div className="w-64 h-64 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted hover:bg-muted/80 transition-colors p-4 text-center">
+                                            <svg className="h-10 w-10 text-muted-foreground mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                                             </svg>
-                                            <span className="text-sm text-gray-500 font-medium">Nenhuma imagem selecionada</span>
+                                            <span className="text-sm text-muted-foreground font-medium">Nenhuma imagem selecionada</span>
                                         </div>
                                     )}
 
                                     <div className="flex flex-col items-center mt-2">
                                         <label
                                             htmlFor="imagem"
-                                            className="cursor-pointer rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                                            className="cursor-pointer rounded-md bg-background px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-border hover:bg-muted transition-colors"
                                         >
                                             <span>{previewUrl ? 'Trocar foto' : 'Selecionar foto'}</span>
                                             <input
@@ -236,7 +235,7 @@ export default function CadastroEstabelecimentoPage() {
                                         </label>
 
                                         {imagem && (
-                                            <span className="mt-3 text-xs text-gray-500 max-w-[250px] truncate text-center">
+                                            <span className="mt-3 text-xs text-muted-foreground max-w-[250px] truncate text-center">
                                                 {imagem.name}
                                             </span>
                                         )}
@@ -269,7 +268,7 @@ export default function CadastroEstabelecimentoPage() {
                                     onChange={(e) => handleChange("descricao", e.target.value)}
                                     placeholder="Breve resumo sobre a culinária e o ambiente..."
                                     rows={3}
-                                    className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    className="mt-1 w-full px-3 py-2 text-sm border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
                                     aria-invalid={!!errors.descricao}
                                     required
                                 />
@@ -311,8 +310,8 @@ export default function CadastroEstabelecimentoPage() {
                             </div>
                         </FieldGroup>
 
-                        <FieldGroup className="space-y-6 pt-6 border-t border-gray-100">
-                            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Localização</h2>
+                        <FieldGroup className="space-y-6 pt-6 border-t border-border">
+                            <h2 className="text-lg font-semibold border-b border-border pb-2 mb-4">Localização</h2>
 
                             <Field>
                                 <FieldLabel htmlFor="cep" className="font-medium">CEP</FieldLabel>
@@ -331,7 +330,7 @@ export default function CadastroEstabelecimentoPage() {
                                         type="button"
                                         onClick={handleSearchCEP}
                                         disabled={loadingCep}
-                                        className="px-5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="px-5 bg-muted text-muted-foreground hover:bg-muted/80 border border-border shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {loadingCep ? "Buscando..." : "Pesquisar"}
                                     </Button>
@@ -343,6 +342,7 @@ export default function CadastroEstabelecimentoPage() {
                                 <FieldLabel htmlFor="rua" className="font-medium">Rua / Avenida</FieldLabel>
                                 <Input id="rua" name="rua" value={form.rua} onChange={(e) => handleChange("rua", e.target.value)} placeholder="Ex: Av. Paulista, 1000" className="mt-1" />
                             </Field>
+
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-12">
                                 <Field className="sm:col-span-8">
                                     <FieldLabel htmlFor="cidade" className="font-medium">Cidade</FieldLabel>
@@ -355,25 +355,39 @@ export default function CadastroEstabelecimentoPage() {
                             </div>
                         </FieldGroup>
 
-                        <FieldGroup className="space-y-6 pt-6 border-t border-gray-100">
+                        <FieldGroup className="space-y-6 pt-6 border-t border-border">
                             <Field>
-                                <FieldLabel htmlFor="gerenteEmail" className="font-medium">Email do Gerente <span className="text-gray-400 font-normal">(Opcional)</span></FieldLabel>
-                                <Input id="gerenteEmail" name="gerenteEmail" type="email" value={form.gerenteEmail} onChange={(e) => handleChange("gerenteEmail", e.target.value)} placeholder="gerente@exemplo.com" aria-invalid={!!errors.gerenteEmail} className="mt-1" />
+                                <FieldLabel htmlFor="gerenteEmail" className="font-medium">
+                                    Email do Gerente <span className="text-muted-foreground font-normal">(Opcional)</span>
+                                </FieldLabel>
+                                <Input
+                                    id="gerenteEmail"
+                                    name="gerenteEmail"
+                                    type="email"
+                                    value={form.gerenteEmail}
+                                    onChange={(e) => handleChange("gerenteEmail", e.target.value)}
+                                    placeholder="gerente@exemplo.com"
+                                    aria-invalid={!!errors.gerenteEmail}
+                                    className="mt-1"
+                                />
                                 {errors.gerenteEmail && <FieldDescription className="text-red-500 text-sm mt-1">{errors.gerenteEmail}</FieldDescription>}
                             </Field>
                         </FieldGroup>
 
                         {message && (
-                            <div className={`p-4 rounded-md text-sm font-medium ${message.includes('Erro') || message.includes('inválido') ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-green-50 text-green-800 border border-green-200'}`}>
+                            <div className={`p-4 rounded-md text-sm font-medium ${message.includes('Erro') || message.includes('inválido')
+                                ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                                : 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20'
+                            }`}>
                                 {message}
                             </div>
                         )}
 
-                        <div className="pt-6 mt-6 border-t border-gray-100">
+                        <div className="pt-6 mt-6 border-t border-border">
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 px-8 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors disabled:opacity-70"
+                                className="w-full py-3 px-8 text-base font-medium disabled:opacity-70"
                             >
                                 {loading ? "Salvando..." : "Cadastrar Restaurante"}
                             </Button>
