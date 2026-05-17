@@ -1,9 +1,10 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, LogOut } from "lucide-react";
+import { useState, useTransition } from "react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { useLocationTime } from "@/app/hooks/useLocationTime";
+import { logoutAction } from "@/lib/actions"; // Ajuste o caminho conforme onde salvou a action
 
 interface MenuItem {
     title: string;
@@ -73,7 +74,7 @@ const Navbar = ({
                         url: "/",
                         src: "/img.png",
                         alt: "logo",
-                        title: "Shadcnblocks.com",
+                        title: "Fournos",
                     },
                     menu = [
                         { title: "Home", url: "/home" },
@@ -88,8 +89,17 @@ const Navbar = ({
                 }: NavbarProps) => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const { location, time, loading } = useLocationTime();
+    const [isPending, startTransition] = useTransition();
 
     const locationDisplay = loading ? "..." : `${location}  /  ${time}`;
+
+    const handleLogout = () => {
+        // startTransition garante que o estado de loading possa ser acompanhado
+        // e executa a Server Action para apagar o cookie e redirecionar
+        startTransition(() => {
+            logoutAction();
+        });
+    };
 
     return (
         <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -113,6 +123,16 @@ const Navbar = ({
                             {locationDisplay}
                         </div>
                         <ModeToggle />
+
+                        {/* Botão de Logout Desktop */}
+                        <button
+                            onClick={handleLogout}
+                            disabled={isPending}
+                            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                        >
+                            <LogOut className="size-4" />
+                            Sair
+                        </button>
                     </div>
                 </nav>
 
@@ -155,18 +175,15 @@ const Navbar = ({
                         </div>
 
                         <div className="mt-4 flex flex-col gap-2">
-                            <a
-                                href={auth.login.url}
-                                className="px-3 py-2 text-sm text-center border border-border rounded-md hover:bg-muted transition-colors"
+                            {/* Botão de Logout Mobile */}
+                            <button
+                                onClick={handleLogout}
+                                disabled={isPending}
+                                className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-destructive/10 text-destructive border border-destructive/20 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
                             >
-                                {auth.login.title}
-                            </a>
-                            <a
-                                href={auth.signup.url}
-                                className="px-3 py-2 text-sm text-center bg-foreground text-background rounded-md hover:opacity-90 transition-opacity"
-                            >
-                                {auth.signup.title}
-                            </a>
+                                <LogOut className="size-4" />
+                                {isPending ? "Saindo..." : "Sair da Conta"}
+                            </button>
                         </div>
                     </div>
                 )}
