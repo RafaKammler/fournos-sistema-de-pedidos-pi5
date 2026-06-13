@@ -37,7 +37,7 @@ export function LoginForm({
       const data = await res.json()
 
       if (data.usuario?.perfil === 'ADMIN' || data.perfil === 'ADMIN') {
-        router.push("/restrito/cadastroEstabelecimento")
+        router.push("/restrito/admin")
       } else {
         router.push("/home")
       }

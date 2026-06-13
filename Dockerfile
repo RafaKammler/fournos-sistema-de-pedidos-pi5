@@ -9,7 +9,7 @@ EXPOSE 3000 9229
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 
-RUN npm ci
+RUN npm install
 
 RUN npx prisma generate
 

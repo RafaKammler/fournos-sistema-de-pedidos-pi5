@@ -7,12 +7,13 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - next_cache:/app/.next
     depends_on:
       db:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://admin:admin@db:5432/fournos_db
-    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
+    command: sh -c "npx prisma migrate deploy && npm run dev"
 
   db:
     image: postgres:15-alpine
@@ -32,3 +33,4 @@ services:
 
 volumes:
   pgdata:
+  next_cache:
