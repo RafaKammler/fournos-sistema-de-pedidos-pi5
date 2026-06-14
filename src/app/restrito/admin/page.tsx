@@ -22,6 +22,17 @@ export default async function AdminPage() {
 
     const estabelecimentos = await prisma.estabelecimento.findMany()
 
+    const usuarios = await prisma.usuario.findMany({
+        orderBy: { dataCadastro: 'desc' },
+        select: {
+            id: true,
+            nome: true,
+            email: true,
+            perfil: true,
+            dataCadastro: true
+        }
+    })
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar
@@ -49,7 +60,7 @@ export default async function AdminPage() {
                     </div>
                 </div>
 
-                <AdminTabs estabelecimentos={estabelecimentos} />
+                <AdminTabs estabelecimentos={estabelecimentos} usuarios={usuarios}/>
             </main>
         </div>
     )

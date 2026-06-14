@@ -14,6 +14,16 @@ enum Perfil {
   GERENTE
 }
 
+enum TipoNotificacao {
+  AVISO
+  INFORMATIVA
+}
+
+enum StatusNotificacao {
+  NAO_LIDA
+  LIDA
+}
+
 model Usuario {
   id          Int       @id @default(autoincrement())
   nome        String
@@ -21,7 +31,6 @@ model Usuario {
   senha       String
   perfil      Perfil
   dataCadastro DateTime @default(now())
-
   gerente     Gerente?
 }
 
@@ -35,13 +44,38 @@ model Gerente {
 }
 
 model Estabelecimento {
-  id           Int       @id @default(autoincrement())
-  nome         String
-  descricao    String
-  cnpj         String    @unique
-  telefone     String
+  id            Int           @id @default(autoincrement())
+  nome          String
+  descricao     String
+  cnpj          String        @unique
+  telefone      String
   caminhoImagem String
-  cep          String
-  dataCadastro DateTime @default(now())
-  gerentes     Gerente[]
+  cep           String
+  dataCadastro  DateTime      @default(now())
+  gerentes      Gerente[]
+  produtos      Produto[]
+  notificacoes  Notificacao[]
+}
+
+model Produto {
+  id                Int             @id @default(autoincrement())
+  nome              String
+  descricao         String
+  preco             Float
+  caminhoImagem     String?
+  disponivel        Boolean         @default(true)
+  estabelecimentoId Int
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  dataCadastro      DateTime        @default(now())
+}
+
+model Notificacao {
+  id                Int               @id @default(autoincrement())
+  titulo            String
+  mensagem          String
+  tipo              TipoNotificacao   @default(INFORMATIVA)
+  status            StatusNotificacao @default(NAO_LIDA)
+  estabelecimentoId Int
+  estabelecimento   Estabelecimento   @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  dataCriacao       DateTime          @default(now())
 }

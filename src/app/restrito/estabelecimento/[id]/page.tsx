@@ -12,7 +12,12 @@ export default async function EstabelecimentoDetalhesPage({ params }: { params: 
     }
 
     const estabelecimento = await prisma.estabelecimento.findUnique({
-        where: { id: estabelecimentoId }
+        where: { id: estabelecimentoId },
+        include: {
+            produtos: {
+                orderBy: {dataCadastro: 'desc'}
+            }
+        }
     })
 
     if (!estabelecimento) {

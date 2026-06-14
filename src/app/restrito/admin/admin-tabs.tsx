@@ -2,47 +2,45 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Users, Settings, Plus, MapPin, Phone } from "lucide-react"
+import { Building2, Users, Plus, MapPin, Phone, Shield, UserCog, User, Bell, Send, X, BellRing } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Input } from "@/components/ui/input"
 
-export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
+export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimentos: any[], usuarios?: any[] }) {
     const [activeTab, setActiveTab] = useState("estabelecimentos")
     const [isDeleting, setIsDeleting] = useState<number | null>(null)
+    const [isDeletingUser, setIsDeletingUser] = useState<number | null>(null)
+    const [isSending, setIsSending] = useState(false)
+    const [showNotificacaoModal, setShowNotificacaoModal] = useState<number | "TODOS" | false>(false)
     const router = useRouter()
+
+    const [notificacaoForm, setNotificacaoForm] = useState({
+        titulo: "",
+        mensagem: "",
+        tipo: "INFORMATIVA"
+    })
 
     function formatarTelefone(telefone: string) {
         if (!telefone) return ""
         const limpo = telefone.replace(/\D/g, "")
-        if (limpo.length === 11) {
-            return limpo.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")
-        } else if (limpo.length === 10) {
-            return limpo.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3")
-        }
+        if (limpo.length === 11) return limpo.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")
+        if (limpo.length === 10) return limpo.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3")
         return telefone
     }
 
     function formatarCep(cep: string) {
         if (!cep) return ""
         const limpo = cep.replace(/\D/g, "")
-        if (limpo.length === 8) {
-            return limpo.replace(/(\d{5})(\d{3})/, "$1-$2")
-        }
+        if (limpo.length === 8) return limpo.replace(/(\d{5})(\d{3})/, "$1-$2")
         return cep
     }
 
     async function handleExcluir(id: number, nome: string) {
-        if (!confirm(`Tem a certeza que deseja excluir o estabelecimento "${nome}"?`)) {
-            return
-        }
-
+        if (!confirm(`Tem a certeza que deseja excluir o estabelecimento "${nome}"?`)) return
         setIsDeleting(id)
-
         try {
-            const res = await fetch(`/api/excluirEstabelecimento/${id}`, {
-                method: "DELETE",
-            })
-
+            const res = await fetch(`/api/excluirEstabelecimento/${id}`, { method: "DELETE" })
             if (res.ok) {
                 toast.success("Estabelecimento excluído com sucesso!")
                 router.refresh()
@@ -57,8 +55,62 @@ export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
         }
     }
 
+    async function handleExcluirUsuario(id: number, nome: string, perfil: string) {
+        let mensagem = `Tem a certeza que deseja excluir o usuário "${nome}"?`
+        if (perfil === "GERENTE") {
+            mensagem = `O usuário "${nome}" é um gerente. Ao excluí-lo, ele será desvinculado do seu estabelecimento e a conta será apagada. Deseja continuar?`
+        }
+        if (!confirm(mensagem)) return
+        setIsDeletingUser(id)
+        try {
+            const res = await fetch(`/api/excluirUsuario/${id}`, { method: "DELETE" })
+            if (res.ok) {
+                toast.success("Usuário excluído com sucesso!")
+                router.refresh()
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao excluir usuário.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar excluir.")
+        } finally {
+            setIsDeletingUser(null)
+        }
+    }
+
+    async function handleEnviarNotificacao(e: React.FormEvent) {
+        e.preventDefault()
+        setIsSending(true)
+
+        try {
+            const payload = {
+                ...notificacaoForm,
+                estabelecimentoId: showNotificacaoModal
+            }
+
+            const res = await fetch("/api/enviarNotificacao", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+
+            if (res.ok) {
+                toast.success("Notificação enviada com sucesso!")
+                setNotificacaoForm({ titulo: "", mensagem: "", tipo: "INFORMATIVA" })
+                setShowNotificacaoModal(false)
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao enviar notificação.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar enviar.")
+        } finally {
+            setIsSending(false)
+        }
+    }
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
             <div className="flex space-x-1 border-b border-border overflow-x-auto">
                 <button
                     onClick={() => setActiveTab("estabelecimentos")}
@@ -92,12 +144,22 @@ export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
                                 <h2 className="text-lg font-semibold">Gerenciamento de Estabelecimentos</h2>
                                 <p className="text-sm text-muted-foreground">Visualize e gerencie os restaurantes e cantinas cadastrados.</p>
                             </div>
-                            <a href="/restrito/cadastroEstabelecimento">
-                                <Button className="gap-2 w-full sm:w-auto">
-                                    <Plus className="size-4" />
-                                    Novo Estabelecimento
+                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 w-full sm:w-auto"
+                                    onClick={() => setShowNotificacaoModal("TODOS")}
+                                >
+                                    <BellRing className="size-4" />
+                                    Notificar Todos
                                 </Button>
-                            </a>
+                                <a href="/restrito/cadastroEstabelecimento" className="w-full sm:w-auto">
+                                    <Button className="gap-2 w-full">
+                                        <Plus className="size-4" />
+                                        Novo Estabelecimento
+                                    </Button>
+                                </a>
+                            </div>
                         </div>
 
                         {estabelecimentos.length === 0 ? (
@@ -117,6 +179,18 @@ export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
                                         onClick={() => router.push(`/restrito/estabelecimento/${est.id}`)}
                                         className="group relative overflow-hidden rounded-xl border border-border bg-background shadow-sm hover:shadow-md hover:border-primary/50 transition-all flex flex-col cursor-pointer"
                                     >
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute top-3 right-3 z-20 bg-background/80 backdrop-blur-sm hover:bg-background border border-border shadow-sm rounded-full"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setShowNotificacaoModal(est.id)
+                                            }}
+                                        >
+                                            <Bell className="size-4 text-foreground" />
+                                        </Button>
+
                                         <div className="p-5 flex-1 flex flex-col gap-4">
                                             <div className="flex items-start gap-4">
                                                 <img
@@ -124,7 +198,7 @@ export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
                                                     alt={est.nome}
                                                     className="size-16 rounded-lg object-cover ring-1 ring-border bg-muted"
                                                 />
-                                                <div className="flex-1 min-w-0">
+                                                <div className="flex-1 min-w-0 pr-8">
                                                     <h4 className="font-semibold text-base truncate group-hover:text-primary transition-colors">{est.nome}</h4>
                                                     <p className="text-xs text-muted-foreground truncate font-mono mt-0.5">CNPJ: {est.cnpj}</p>
                                                 </div>
@@ -172,13 +246,146 @@ export function AdminTabs({ estabelecimentos }: { estabelecimentos: any[] }) {
                 )}
 
                 {activeTab === "usuarios" && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                        <Settings className="size-12 mb-4 opacity-20" />
-                        <p className="text-lg font-medium">Em breve</p>
-                        <p className="text-sm">A aba de gerenciamento de usuários será implementada futuramente.</p>
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-semibold">Gerenciamento de Usuários</h2>
+                                <p className="text-sm text-muted-foreground">Visualize e gerencie os administradores, gerentes e clientes do sistema.</p>
+                            </div>
+                            <a href="/restrito/cadastroUsuario" className="w-full sm:w-auto">
+                                <Button className="gap-2 w-full">
+                                    <Plus className="size-4" />
+                                    Novo Usuário
+                                </Button>
+                            </a>
+                        </div>
+
+                        {usuarios.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
+                                <Users className="size-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium">Nenhum usuário</h3>
+                                <p className="text-sm text-muted-foreground mt-1 mb-4">Ainda não existem outros usuários cadastrados.</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {usuarios.map((user) => (
+                                    <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-full shrink-0 ${
+                                                user.perfil === 'ADMIN' ? 'bg-red-500/10 text-red-500' :
+                                                    user.perfil === 'GERENTE' ? 'bg-blue-500/10 text-blue-500' :
+                                                        'bg-primary/10 text-primary'
+                                            }`}>
+                                                {user.perfil === 'ADMIN' ? <Shield className="size-5" /> :
+                                                    user.perfil === 'GERENTE' ? <UserCog className="size-5" /> :
+                                                        <User className="size-5" />}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-base">{user.nome}</h4>
+                                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-row items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-border pt-4 sm:pt-0">
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                                                user.perfil === 'ADMIN' ? 'bg-red-500/10 text-red-500 ring-red-500/20' :
+                                                    user.perfil === 'GERENTE' ? 'bg-blue-500/10 text-blue-500 ring-blue-500/20' :
+                                                        'bg-primary/10 text-primary ring-primary/20'
+                                            }`}>
+                                                {user.perfil}
+                                            </span>
+
+                                            <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                                                <a href={`/restrito/editarUsuario/${user.id}`} className="w-full sm:w-auto">
+                                                    <Button variant="outline" size="sm" className="w-full">Editar</Button>
+                                                </a>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="w-full sm:w-auto"
+                                                    onClick={() => handleExcluirUsuario(user.id, user.nome, user.perfil)}
+                                                    disabled={isDeletingUser === user.id}
+                                                >
+                                                    {isDeletingUser === user.id ? "A excluir..." : "Excluir"}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+
+            {showNotificacaoModal !== false && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-card text-card-foreground border border-border shadow-xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
+                            <div>
+                                <h3 className="text-lg font-bold">
+                                    {showNotificacaoModal === "TODOS" ? "Notificar Todos" : "Enviar Notificação"}
+                                </h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {showNotificacaoModal === "TODOS"
+                                        ? "Este aviso será enviado para todos os estabelecimentos."
+                                        : "Este aviso será enviado apenas para o estabelecimento selecionado."}
+                                </p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setShowNotificacaoModal(false)} className="rounded-full shrink-0">
+                                <X className="size-5" />
+                            </Button>
+                        </div>
+
+                        <form onSubmit={handleEnviarNotificacao} className="p-6 space-y-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium">Título da Notificação</label>
+                                    <Input
+                                        required
+                                        value={notificacaoForm.titulo}
+                                        onChange={(e) => setNotificacaoForm({ ...notificacaoForm, titulo: e.target.value })}
+                                        placeholder="Ex: Atualização no sistema"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium">Tipo</label>
+                                    <select
+                                        value={notificacaoForm.tipo}
+                                        onChange={(e) => setNotificacaoForm({ ...notificacaoForm, tipo: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                    >
+                                        <option value="INFORMATIVA">Informativa</option>
+                                        <option value="AVISO">Aviso Importante</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-medium">Mensagem</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    value={notificacaoForm.mensagem}
+                                    onChange={(e) => setNotificacaoForm({ ...notificacaoForm, mensagem: e.target.value })}
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+                                    placeholder="Escreva a mensagem aqui..."
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                                <Button type="button" variant="outline" onClick={() => setShowNotificacaoModal(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" disabled={isSending} className="gap-2">
+                                    <Send className="size-4" />
+                                    {isSending ? "Enviando..." : "Enviar"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
