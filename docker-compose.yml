@@ -13,7 +13,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://admin:admin@db:5432/fournos_db
-    command: sh -c "npx prisma migrate deploy && npm run dev"
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run dev"
 
   db:
     image: postgres:15-alpine
