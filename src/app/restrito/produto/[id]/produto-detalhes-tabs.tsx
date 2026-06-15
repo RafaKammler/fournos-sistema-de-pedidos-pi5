@@ -3,14 +3,81 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Layers, Edit, Info, AlertCircle } from "lucide-react"
+import { ArrowLeft, Layers, Edit, Info, Plus, X } from "lucide-react"
+import { toast } from "sonner"
 
-export function ProdutoDetalhesTabs({ produto }: { produto: any }) {
+export function ProdutoDetalhesTabs({ produto, complementosDisponiveis = [] }: { produto: any, complementosDisponiveis: any[] }) {
     const [activeTab, setActiveTab] = useState("complementos")
+    const [selectedComplementoId, setSelectedComplementoId] = useState("")
+    const [isLinking, setIsLinking] = useState(false)
+    const [isUnlinking, setIsUnlinking] = useState<number | null>(null)
     const router = useRouter()
+
+    const complementosVinculados = produto.complementos?.map((pc: any) => pc.complemento) || []
+    const complementosNaoVinculados = complementosDisponiveis.filter(
+        (cd) => !complementosVinculados.some((cv: any) => cv.id === cd.id)
+    )
 
     function formatarMoeda(valor: number) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    }
+
+    async function handleVincular(e: React.FormEvent) {
+        e.preventDefault()
+        if (!selectedComplementoId) return
+
+        setIsLinking(true)
+        try {
+            const res = await fetch("/api/vincularComplemento", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    produtoId: produto.id,
+                    complementoId: parseInt(selectedComplementoId)
+                })
+            })
+
+            if (res.ok) {
+                toast.success("Complemento vinculado com sucesso!")
+                setSelectedComplementoId("")
+                router.refresh()
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao vincular complemento.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar vincular.")
+        } finally {
+            setIsLinking(false)
+        }
+    }
+
+    async function handleDesvincular(complementoId: number) {
+        if (!confirm("Deseja desvincular este complemento do produto?")) return
+
+        setIsUnlinking(complementoId)
+        try {
+            const res = await fetch("/api/desvincularComplemento", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    produtoId: produto.id,
+                    complementoId: complementoId
+                })
+            })
+
+            if (res.ok) {
+                toast.success("Complemento desvinculado com sucesso!")
+                router.refresh()
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao desvincular complemento.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar desvincular.")
+        } finally {
+            setIsUnlinking(null)
+        }
     }
 
     return (
@@ -93,23 +160,60 @@ export function ProdutoDetalhesTabs({ produto }: { produto: any }) {
 
                 <div className="bg-card text-card-foreground shadow-sm ring-1 ring-border rounded-xl p-6 min-h-[300px]">
                     {activeTab === "complementos" && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <h2 className="text-lg font-semibold">Grupos de Complementos</h2>
-                                    <p className="text-sm text-muted-foreground">Configure os adicionais e opções extras para este produto.</p>
-                                </div>
-                                <Button className="gap-2 w-full sm:w-auto" disabled>
-                                    Nova Opção
-                                </Button>
+                        <div className="space-y-8">
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-lg font-semibold">Vincular Complemento</h2>
+                                <p className="text-sm text-muted-foreground">Selecione um complemento já cadastrado no estabelecimento para oferecer neste produto.</p>
+
+                                <form onSubmit={handleVincular} className="flex flex-col sm:flex-row gap-3 mt-2">
+                                    <select
+                                        value={selectedComplementoId}
+                                        onChange={(e) => setSelectedComplementoId(e.target.value)}
+                                        className="flex h-10 w-full sm:max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                        required
+                                    >
+                                        <option value="">Selecione um complemento...</option>
+                                        {complementosNaoVinculados.map((comp: any) => (
+                                            <option key={comp.id} value={comp.id}>
+                                                {comp.nome} - {formatarMoeda(comp.preco)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <Button type="submit" disabled={isLinking || !selectedComplementoId || complementosNaoVinculados.length === 0} className="gap-2 shrink-0">
+                                        <Plus className="size-4" />
+                                        {isLinking ? "Vinculando..." : "Vincular"}
+                                    </Button>
+                                </form>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
-                                <AlertCircle className="size-12 text-muted-foreground mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium">Em breve</h3>
-                                <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                                    A funcionalidade de adicionar complementos, acompanhamentos e variações aos produtos será implementada na próxima etapa.
-                                </p>
+                            <div className="pt-6 border-t border-border">
+                                <h2 className="text-lg font-semibold mb-4">Complementos Vinculados</h2>
+
+                                {complementosVinculados.length === 0 ? (
+                                    <div className="text-sm text-muted-foreground py-6 text-center bg-muted/30 rounded-lg border border-dashed border-border">
+                                        Nenhum complemento está vinculado a este produto no momento.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {complementosVinculados.map((comp: any) => (
+                                            <div key={comp.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background shadow-sm">
+                                                <div>
+                                                    <p className="font-semibold">{comp.nome}</p>
+                                                    <p className="text-sm text-primary font-medium">{formatarMoeda(comp.preco)}</p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDesvincular(comp.id)}
+                                                    disabled={isUnlinking === comp.id}
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <X className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

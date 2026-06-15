@@ -33,6 +33,11 @@ export default async function AdminPage() {
         }
     })
 
+    const complementos = await prisma.complemento.findMany({
+        include: { estabelecimento: { select: { nome: true } } },
+        orderBy: { id: 'desc' }
+    })
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar
@@ -60,7 +65,11 @@ export default async function AdminPage() {
                     </div>
                 </div>
 
-                <AdminTabs estabelecimentos={estabelecimentos} usuarios={usuarios}/>
+                <AdminTabs
+                    estabelecimentos={estabelecimentos}
+                    usuarios={usuarios}
+                    complementos={complementos}
+                />
             </main>
         </div>
     )
