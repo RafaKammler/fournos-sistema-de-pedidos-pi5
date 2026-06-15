@@ -168,7 +168,11 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {produtos.map((prod: any) => (
-                                        <div key={prod.id} className="group flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all">
+                                        <div
+                                            key={prod.id}
+                                            onClick={() => router.push(`/restrito/produto/${prod.id}`)}
+                                            className="group flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-primary/50"
+                                        >
                                             <div className="aspect-video w-full relative bg-muted border-b border-border">
                                                 <img
                                                     src={prod.caminhoImagem || "/img.png"}
@@ -177,17 +181,20 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                                 />
                                                 {!prod.disponivel && (
                                                     <div className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-md">
-                                                        Indisponivel
+                                                        Esgotado
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="p-4 flex-1 flex flex-col">
                                                 <div className="flex justify-between items-start gap-2 mb-2">
-                                                    <h4 className="font-semibold text-base line-clamp-1">{prod.nome}</h4>
+                                                    <h4 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors">{prod.nome}</h4>
                                                     <span className="font-bold text-primary shrink-0">{formatarMoeda(prod.preco)}</span>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">{prod.descricao}</p>
-                                                <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-border">
+                                                <div
+                                                    className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-border"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <a href={`/restrito/editarProduto/${prod.id}`}>
                                                         <Button variant="outline" size="sm" className="w-full gap-2"><Edit className="size-3"/> Editar</Button>
                                                     </a>
