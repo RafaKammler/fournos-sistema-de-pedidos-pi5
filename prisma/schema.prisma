@@ -55,18 +55,40 @@ model Estabelecimento {
   gerentes      Gerente[]
   produtos      Produto[]
   notificacoes  Notificacao[]
+
+  complementos Complemento[]
 }
 
 model Produto {
-  id                Int             @id @default(autoincrement())
+  id                Int                  @id @default(autoincrement())
   nome              String
   descricao         String
   preco             Float
   caminhoImagem     String?
-  disponivel        Boolean         @default(true)
+  disponivel        Boolean              @default(true)
   estabelecimentoId Int
-  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
-  dataCadastro      DateTime        @default(now())
+  estabelecimento   Estabelecimento      @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  dataCadastro      DateTime             @default(now())
+  complementos      ProdutoComplemento[]
+}
+
+model Complemento {
+  id                Int                  @id @default(autoincrement())
+  nome              String
+  preco             Float
+  estabelecimentoId Int
+  estabelecimento   Estabelecimento      @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  produtos          ProdutoComplemento[]
+  dataCadastro      DateTime             @default(now())
+}
+
+model ProdutoComplemento {
+  produtoId     Int
+  complementoId Int
+  produto       Produto     @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  complemento   Complemento @relation(fields: [complementoId], references: [id], onDelete: Cascade)
+
+  @@id([produtoId, complementoId])
 }
 
 model Notificacao {
