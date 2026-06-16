@@ -11,17 +11,25 @@ export default async function ProdutoDetalhesPage({ params }: { params: Promise<
         redirect("/restrito/admin")
     }
 
-    // Busca o produto e também inclui as informações do estabelecimento dele
     const produto = await prisma.produto.findUnique({
         where: { id: produtoId },
         include: {
-            estabelecimento: true
+            estabelecimento: true,
+            complementos: {
+                include: {
+                    complemento: true
+                }
+            }
         }
     })
 
     if (!produto) {
         redirect("/restrito/admin")
     }
+
+    const complementosDoEstabelecimento = await prisma.complemento.findMany({
+        where: { estabelecimentoId: produto.estabelecimentoId }
+    })
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -35,7 +43,10 @@ export default async function ProdutoDetalhesPage({ params }: { params: Promise<
                 menu={[]}
             />
             <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-                <ProdutoDetalhesTabs produto={produto} />
+                <ProdutoDetalhesTabs
+                    produto={produto}
+                    complementosDisponiveis={complementosDoEstabelecimento}
+                />
             </main>
         </div>
     )

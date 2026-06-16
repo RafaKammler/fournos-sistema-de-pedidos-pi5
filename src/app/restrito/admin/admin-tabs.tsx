@@ -2,17 +2,24 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Users, Plus, MapPin, Phone, Shield, UserCog, User, Bell, Send, X, BellRing } from "lucide-react"
+import { Building2, Users, Plus, MapPin, Phone, Shield, UserCog, User, Bell, Send, X, BellRing, Layers } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 
-export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimentos: any[], usuarios?: any[] }) {
+export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }: { estabelecimentos: any[], usuarios?: any[], complementos?: any[] }) {
     const [activeTab, setActiveTab] = useState("estabelecimentos")
     const [isDeleting, setIsDeleting] = useState<number | null>(null)
     const [isDeletingUser, setIsDeletingUser] = useState<number | null>(null)
+    const [isDeletingComplemento, setIsDeletingComplemento] = useState<number | null>(null)
     const [isSending, setIsSending] = useState(false)
     const [showNotificacaoModal, setShowNotificacaoModal] = useState<number | "TODOS" | false>(false)
+    const [showComplementoModal, setShowComplementoModal] = useState(false)
+    const [isSavingComplemento, setIsSavingComplemento] = useState(false)
+
+    // Novo estado para o filtro de complementos
+    const [selectedEstComplemento, setSelectedEstComplemento] = useState<string>("")
+
     const router = useRouter()
 
     const [notificacaoForm, setNotificacaoForm] = useState({
@@ -20,6 +27,17 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
         mensagem: "",
         tipo: "INFORMATIVA"
     })
+
+    const [complementoForm, setComplementoForm] = useState({
+        nome: "",
+        preco: "",
+        estabelecimentoId: ""
+    })
+
+    // Filtra os complementos com base no estabelecimento selecionado
+    const filteredComplementos = selectedEstComplemento
+        ? complementos.filter(comp => comp.estabelecimentoId.toString() === selectedEstComplemento)
+        : []
 
     function formatarTelefone(telefone: string) {
         if (!telefone) return ""
@@ -34,6 +52,17 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
         const limpo = cep.replace(/\D/g, "")
         if (limpo.length === 8) return limpo.replace(/(\d{5})(\d{3})/, "$1-$2")
         return cep
+    }
+
+    function formatarMoedaInput(valor: string) {
+        const apenasDigitos = valor.replace(/\D/g, "")
+        const numero = parseFloat(apenasDigitos) / 100
+        if (isNaN(numero)) return ""
+        return numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+
+    function formatarMoeda(valor: number) {
+        return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     }
 
     async function handleExcluir(id: number, nome: string) {
@@ -78,6 +107,25 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
         }
     }
 
+    async function handleExcluirComplemento(id: number, nome: string) {
+        if (!confirm(`Tem a certeza que deseja excluir o complemento "${nome}"? Ele será removido de todos os produtos vinculados.`)) return
+        setIsDeletingComplemento(id)
+        try {
+            const res = await fetch(`/api/excluirComplemento/${id}`, { method: "DELETE" })
+            if (res.ok) {
+                toast.success("Complemento excluído com sucesso!")
+                router.refresh()
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao excluir complemento.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar excluir.")
+        } finally {
+            setIsDeletingComplemento(null)
+        }
+    }
+
     async function handleEnviarNotificacao(e: React.FormEvent) {
         e.preventDefault()
         setIsSending(true)
@@ -109,6 +157,38 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
         }
     }
 
+    async function handleSalvarComplemento(e: React.FormEvent) {
+        e.preventDefault()
+        setIsSavingComplemento(true)
+
+        try {
+            const precoFormatado = parseFloat(complementoForm.preco.replace(/\./g, "").replace(",", "."))
+            const res = await fetch("/api/cadastroComplemento", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nome: complementoForm.nome,
+                    preco: precoFormatado,
+                    estabelecimentoId: parseInt(complementoForm.estabelecimentoId)
+                })
+            })
+
+            if (res.ok) {
+                toast.success("Complemento cadastrado com sucesso!")
+                setComplementoForm({ nome: "", preco: "", estabelecimentoId: selectedEstComplemento })
+                setShowComplementoModal(false)
+                router.refresh()
+            } else {
+                const data = await res.json()
+                toast.error(data.message || "Erro ao cadastrar complemento.")
+            }
+        } catch (error) {
+            toast.error("Erro de conexão ao tentar cadastrar.")
+        } finally {
+            setIsSavingComplemento(false)
+        }
+    }
+
     return (
         <div className="space-y-6 relative">
             <div className="flex space-x-1 border-b border-border overflow-x-auto">
@@ -133,6 +213,17 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
                 >
                     <Users className="size-4" />
                     Usuários
+                </button>
+                <button
+                    onClick={() => setActiveTab("complementos")}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                        activeTab === "complementos"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                >
+                    <Layers className="size-4" />
+                    Complementos
                 </button>
             </div>
 
@@ -316,6 +407,80 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
                         )}
                     </div>
                 )}
+
+                {activeTab === "complementos" && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-semibold">Gerenciamento de Complementos</h2>
+                                <p className="text-sm text-muted-foreground">Cadastre e gerencie os adicionais disponíveis para os produtos.</p>
+                            </div>
+                            <Button
+                                className="gap-2 w-full sm:w-auto"
+                                onClick={() => {
+                                    setComplementoForm(prev => ({ ...prev, estabelecimentoId: selectedEstComplemento }));
+                                    setShowComplementoModal(true);
+                                }}
+                            >
+                                <Plus className="size-4" />
+                                Novo Complemento
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-col gap-2 max-w-sm border-b border-border pb-6">
+                            <label className="text-sm font-medium">Filtrar por Estabelecimento</label>
+                            <select
+                                value={selectedEstComplemento}
+                                onChange={(e) => setSelectedEstComplemento(e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            >
+                                <option value="">Selecione um estabelecimento...</option>
+                                {estabelecimentos.map(est => (
+                                    <option key={est.id} value={est.id.toString()}>{est.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {!selectedEstComplemento ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
+                                <Building2 className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">Selecione um estabelecimento</h3>
+                                <p className="text-sm text-muted-foreground mt-1 mb-4">Escolha um estabelecimento acima para visualizar os complementos cadastrados nele.</p>
+                            </div>
+                        ) : filteredComplementos.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
+                                <Layers className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">Nenhum complemento</h3>
+                                <p className="text-sm text-muted-foreground mt-1 mb-4">Este estabelecimento ainda não possui complementos cadastrados.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredComplementos.map((comp) => (
+                                    <div key={comp.id} className="flex flex-col justify-between p-4 rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all">
+                                        <div className="mb-4">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <h4 className="font-semibold text-base">{comp.nome}</h4>
+                                                <span className="font-bold text-primary text-sm shrink-0">{formatarMoeda(comp.preco)}</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Estabelecimento: {comp.estabelecimento?.nome}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="w-full"
+                                            onClick={() => handleExcluirComplemento(comp.id, comp.nome)}
+                                            disabled={isDeletingComplemento === comp.id}
+                                        >
+                                            {isDeletingComplemento === comp.id ? "A excluir..." : "Excluir"}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {showNotificacaoModal !== false && (
@@ -380,6 +545,69 @@ export function AdminTabs({ estabelecimentos, usuarios = [] }: { estabelecimento
                                 <Button type="submit" disabled={isSending} className="gap-2">
                                     <Send className="size-4" />
                                     {isSending ? "Enviando..." : "Enviar"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showComplementoModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-card text-card-foreground border border-border shadow-xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
+                            <div>
+                                <h3 className="text-lg font-bold">Novo Complemento</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Cadastre um novo item adicional no banco de dados.</p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setShowComplementoModal(false)} className="rounded-full shrink-0">
+                                <X className="size-5" />
+                            </Button>
+                        </div>
+
+                        <form onSubmit={handleSalvarComplemento} className="p-6 space-y-5">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-medium">Estabelecimento Dono</label>
+                                <select
+                                    required
+                                    value={complementoForm.estabelecimentoId}
+                                    onChange={(e) => setComplementoForm({ ...complementoForm, estabelecimentoId: e.target.value })}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                >
+                                    <option value="">Selecione o estabelecimento...</option>
+                                    {estabelecimentos.map(est => (
+                                        <option key={est.id} value={est.id.toString()}>{est.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium">Nome do Complemento</label>
+                                    <Input
+                                        required
+                                        value={complementoForm.nome}
+                                        onChange={(e) => setComplementoForm({ ...complementoForm, nome: e.target.value })}
+                                        placeholder="Ex: Bacon Extra"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium">Preço Adicional (R$)</label>
+                                    <Input
+                                        required
+                                        value={complementoForm.preco}
+                                        onChange={(e) => setComplementoForm({ ...complementoForm, preco: formatarMoedaInput(e.target.value) })}
+                                        placeholder="0,00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                                <Button type="button" variant="outline" onClick={() => setShowComplementoModal(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" disabled={isSavingComplemento} className="gap-2">
+                                    {isSavingComplemento ? "Salvando..." : "Salvar Complemento"}
                                 </Button>
                             </div>
                         </form>
