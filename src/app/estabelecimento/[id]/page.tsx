@@ -19,11 +19,19 @@ export default async function EstabelecimentoPage({ params }: EstabelecimentoPag
         return notFound()
     }
 
+    // A BUSCA ATUALIZADA AQUI:
     const estabelecimento = await prisma.estabelecimento.findUnique({
         where: { id: estabelecimentoId },
         include: {
             produtos: {
-                where: { disponivel: true }
+                where: { disponivel: true },
+                include: {
+                    complementos: {
+                        include: {
+                            complemento: true
+                        }
+                    }
+                }
             }
         }
     })
@@ -36,11 +44,10 @@ export default async function EstabelecimentoPage({ params }: EstabelecimentoPag
     const perfilUsuario = session?.perfil as string | undefined
 
     return (
-        <div className="min-h-screen bg-background pb-10"> {/* Alterado para bg-background */}
+        <div className="min-h-screen bg-background pb-10">
             <Navbar perfil={perfilUsuario} />
 
             <main className="container mx-auto p-4 max-w-5xl mt-6">
-                {/* Cabeçalho - Alterado para bg-card e text-card-foreground */}
                 <div className="flex items-center gap-6 mb-10 bg-card text-card-foreground p-6 rounded-2xl shadow-sm border">
                     {estabelecimento.caminhoImagem ? (
                         <div className="relative h-[100px] w-[100px] sm:h-[120px] sm:w-[120px] shrink-0">
@@ -63,7 +70,6 @@ export default async function EstabelecimentoPage({ params }: EstabelecimentoPag
                     </div>
                 </div>
 
-                {/* Listagem do Cardápio */}
                 <div className="mb-6 border-b pb-2">
                     <h2 className="text-2xl font-semibold text-foreground">Cardápio</h2>
                 </div>

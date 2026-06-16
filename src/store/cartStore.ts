@@ -1,53 +1,49 @@
 import { create } from 'zustand'
-// 1. Importamos o middleware de persistência do próprio Zustand
 import { persist } from 'zustand/middleware'
 
-export interface CartItem {
+export interface CartItemComplemento {
     id: number
     nome: string
     preco: number
     quantidade: number
+}
+
+export interface CartItem {
+    cartItemId: string
+    produtoId: number
+    nome: string
+    precoBase: number
+    quantidade: number
     caminhoImagem: string | null
     estabelecimentoId: number
+    complementos: CartItemComplemento[]
 }
 
 interface CartStore {
     items: CartItem[]
     addItem: (item: CartItem) => void
-    removeItem: (id: number) => void
+    removeItem: (cartItemId: string) => void
     limparCarrinho: () => void
 }
 
-// 2. Envolvemos a nossa função de criação do estado com o 'persist'
 export const useCartStore = create<CartStore>()(
     persist(
         (set) => ({
             items: [],
 
             addItem: (newItem) => set((state) => {
-                const itemExistente = state.items.find((item) => item.id === newItem.id)
-
-                if (itemExistente) {
-                    return {
-                        items: state.items.map((item) =>
-                            item.id === newItem.id
-                                ? { ...item, quantidade: item.quantidade + newItem.quantidade }
-                                : item
-                        )
-                    }
-                }
-
+                // Como cada lanche pode ser customizado diferente, tratamos como um item novo
+                // (A não ser que você queira fazer uma lógica complexa de comparar arrays de complementos)
                 return { items: [...state.items, newItem] }
             }),
 
-            removeItem: (id) => set((state) => ({
-                items: state.items.filter((item) => item.id !== id)
+            removeItem: (cartItemId) => set((state) => ({
+                items: state.items.filter((item) => item.cartItemId !== cartItemId)
             })),
 
             limparCarrinho: () => set({ items: [] })
         }),
         {
-            // 3. Damos um nome para essa "gaveta" no navegador do usuário
             name: 'fournos-carrinho',
         }
     )

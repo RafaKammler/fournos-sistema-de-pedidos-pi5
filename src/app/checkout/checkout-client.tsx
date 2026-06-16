@@ -5,12 +5,13 @@ import { useCartStore } from "@/store/cartStore"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, QrCode, CreditCard, Banknote } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CheckoutClient() {
     const [isMounted, setIsMounted] = useState<boolean>(false)
     const [metodoPagamento, setMetodoPagamento] = useState<string>("PIX")
 
-    const { items } = useCartStore()
+    const { items, limparCarrinho } = useCartStore()
     const router = useRouter()
 
     useEffect(() => {
@@ -18,7 +19,24 @@ export default function CheckoutClient() {
         setIsMounted(true)
     }, [])
 
-    const valorTotal = items.reduce((acc, item) => acc + (item.preco * item.quantidade), 0)
+    // Cálculo do valor total somando os complementos corretamente
+    const valorTotal = items.reduce((acc, item) => {
+        const totalComplementos = item.complementos?.reduce((cAcc, c) => cAcc + (c.preco * c.quantidade), 0) || 0;
+        return acc + ((item.precoBase + totalComplementos) * item.quantidade);
+    }, 0);
+
+    const handleFinalizarPedido = () => {
+        // Dispara o toast elegante usando o Sonner
+        toast.success("Pedido finalizado com sucesso!", {
+            description: `Seu pagamento via ${metodoPagamento} foi registrado.`,
+        })
+
+        // Opcional: Se quiser limpar o carrinho e voltar pra home depois de uns segundos:
+        // setTimeout(() => {
+        //    limparCarrinho()
+        //    router.push("/home")
+        // }, 2000)
+    }
 
     if (!isMounted) return null
 
@@ -46,17 +64,36 @@ export default function CheckoutClient() {
                         <section className="bg-card text-card-foreground p-6 rounded-2xl border shadow-sm">
                             <h2 className="text-xl font-semibold mb-4 border-b border-border/50 pb-3">Resumo dos Itens</h2>
                             <div className="flex flex-col gap-4">
-                                {items.map((item) => (
-                                    <div key={item.id} className="flex justify-between items-center">
-                                        <div>
-                                            <p className="font-medium">{item.nome}</p>
-                                            <p className="text-sm text-muted-foreground">Qtde: {item.quantidade}</p>
+                                {items.map((item) => {
+                                    const totalComplementos = item.complementos?.reduce((acc, c) => acc + (c.preco * c.quantidade), 0) || 0;
+                                    const precoFinalItem = item.precoBase + totalComplementos;
+
+                                    return (
+                                        <div key={item.cartItemId} className="flex flex-col py-3 border-b border-border/30 last:border-0">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-medium text-foreground">{item.nome}</p>
+                                                    <p className="text-sm text-muted-foreground">Qtde: {item.quantidade}</p>
+                                                </div>
+                                                <p className="font-semibold text-foreground">
+                                                    R$ {(precoFinalItem * item.quantidade).toFixed(2).replace('.', ',')}
+                                                </p>
+                                            </div>
+
+                                            {/* Mostra os adicionais no resumo do pedido também */}
+                                            {item.complementos && item.complementos.length > 0 && (
+                                                <div className="mt-2 pl-3 border-l-2 border-primary/20 flex flex-col gap-1">
+                                                    {item.complementos.map(c => (
+                                                        <p key={c.id} className="text-xs text-muted-foreground flex justify-between">
+                                                            <span>+ {c.quantidade}x {c.nome}</span>
+                                                            <span>R$ {(c.preco * c.quantidade).toFixed(2).replace('.', ',')}</span>
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="font-semibold text-muted-foreground">
-                                            R$ {(item.preco * item.quantidade).toFixed(2).replace('.', ',')}
-                                        </p>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </section>
 
@@ -118,7 +155,10 @@ export default function CheckoutClient() {
                                     R$ {valorTotal.toFixed(2).replace('.', ',')}
                                 </span>
                             </div>
-                            <Button className="w-full h-11 text-base font-semibold rounded-xl cursor-pointer transition-transform active:scale-[0.98]" onClick={() => alert(`Enviando pedido com pagamento via ${metodoPagamento}!`)}>
+                            <Button
+                                className="w-full h-11 text-base font-semibold rounded-xl cursor-pointer transition-transform active:scale-[0.98]"
+                                onClick={handleFinalizarPedido}
+                            >
                                 Confirmar Pedido
                             </Button>
                         </section>

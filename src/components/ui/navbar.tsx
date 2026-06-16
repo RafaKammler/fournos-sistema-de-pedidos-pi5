@@ -8,6 +8,7 @@ import { logoutAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import { useCartStore } from "@/store/cartStore";
 import {
@@ -63,7 +64,12 @@ const Navbar = ({
 
     const { items, removeItem } = useCartStore();
     const totalItems = items.reduce((acc, item) => acc + item.quantidade, 0);
-    const valorTotal = items.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+
+    // Nova lógica de cálculo do valor total somando os complementos
+    const valorTotal = items.reduce((acc, item) => {
+        const totalComplementos = item.complementos?.reduce((cAcc, c) => cAcc + (c.preco * c.quantidade), 0) || 0;
+        return acc + ((item.precoBase + totalComplementos) * item.quantidade);
+    }, 0);
 
     const locationDisplay = loading ? "..." : `${location}  /  ${time}`;
     const isLogado = !!perfil;
@@ -75,10 +81,8 @@ const Navbar = ({
         });
     };
 
-
     const carrinhoConteudo = (
         <SheetContent className="w-full sm:max-w-md flex flex-col bg-background p-0">
-
             <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/50">
                 <SheetTitle className="text-lg font-bold tracking-tight">Seu Pedido</SheetTitle>
             </SheetHeader>
@@ -91,28 +95,46 @@ const Navbar = ({
                     </div>
                 ) : (
                     <div className="flex flex-col gap-4">
-                        {items.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between pb-4 border-b border-border/40 last:border-0 last:pb-0">
-                                <div className="flex-1 pr-4">
-                                    <h4 className="font-medium text-base mb-1">{item.nome}</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {item.quantidade}x <span className="ml-1">R$ {item.preco.toFixed(2).replace('.', ',')}</span>
-                                    </p>
+                        {items.map((item) => {
+                            // Calcula o preço deste item específico somando seus complementos
+                            const totalComplementos = item.complementos?.reduce((acc, c) => acc + (c.preco * c.quantidade), 0) || 0;
+                            const precoFinalItem = item.precoBase + totalComplementos;
+
+                            return (
+                                <div key={item.cartItemId} className="flex items-center justify-between pb-4 border-b border-border/40 last:border-0 last:pb-0">
+                                    <div className="flex-1 pr-4">
+                                        <h4 className="font-medium text-base mb-1">{item.nome}</h4>
+
+                                        {/* Renderiza os complementos escolhidos */}
+                                        {item.complementos && item.complementos.length > 0 && (
+                                            <div className="flex flex-col mb-1">
+                                                {item.complementos.map(c => (
+                                                    <span key={c.id} className="text-xs text-muted-foreground">
+                                                        + {c.quantidade}x {c.nome}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {item.quantidade}x <span className="ml-1">R$ {precoFinalItem.toFixed(2).replace('.', ',')}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-3">
+                                        <p className="font-semibold text-sm text-primary">
+                                            R$ {(precoFinalItem * item.quantidade).toFixed(2).replace('.', ',')}
+                                        </p>
+                                        <button
+                                            onClick={() => removeItem(item.cartItemId)}
+                                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer p-2 rounded-md"
+                                            title="Remover item"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <p className="font-semibold text-sm">
-                                        R$ {(item.preco * item.quantidade).toFixed(2).replace('.', ',')}
-                                    </p>
-                                    <button
-                                        onClick={() => removeItem(item.id)}
-                                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer p-2 rounded-md"
-                                        title="Remover item"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -161,8 +183,8 @@ const Navbar = ({
                                     <ShoppingCart className="size-5" />
                                     {totalItems > 0 && (
                                         <span className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full">
-                    {totalItems}
-                </span>
+                                            {totalItems}
+                                        </span>
                                     )}
                                 </SheetTrigger>
                                 {carrinhoConteudo}
@@ -205,8 +227,8 @@ const Navbar = ({
                                     <ShoppingCart className="size-5" />
                                     {totalItems > 0 && (
                                         <span className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full">
-                    {totalItems}
-                </span>
+                                            {totalItems}
+                                        </span>
                                     )}
                                 </SheetTrigger>
                                 {carrinhoConteudo}

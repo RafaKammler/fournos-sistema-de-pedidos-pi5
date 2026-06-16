@@ -41,13 +41,16 @@ export default async function AdminPage() {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar
+                perfil={session.perfil as string}
                 logo={{
                     url: "/restrito/admin",
                     src: "/img.png",
                     alt: "Fournos Logo",
                     title: "Fournos"
                 }}
-                menu={[]}
+                menu={[
+                    { title: "Home", url: "/home" }
+                ]}
             />
             <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
                 <div className="bg-card text-card-foreground shadow-sm ring-1 ring-border rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
