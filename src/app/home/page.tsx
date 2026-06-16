@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/ui/navbar";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 
 function formatarTelefone(telefone: string) {
@@ -91,6 +92,7 @@ export default async function HomePage() {
 
     const session = await getSession();
     let nomeExibicao = "Visitante";
+    const perfilUsuario = session?.perfil as string | undefined;
 
     if (session && session.sub) {
         const usuarioLogado = await prisma.usuario.findUnique({
@@ -105,7 +107,7 @@ export default async function HomePage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <Navbar
+            <Navbar perfil={perfilUsuario}
                 logo={{
                     url: "/home",
                     src: "/img.png",
@@ -135,7 +137,7 @@ export default async function HomePage() {
                     </div>
                 </section>
 
-                <section className="mb-10">
+                <section id="categorias" className="mb-10 scroll-mt-24">
                     <h2 className="mb-4 text-xl font-semibold">Categorias</h2>
                     <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
                         {categoriasTemporarias.map((categoria) => (
@@ -164,9 +166,10 @@ export default async function HomePage() {
                     ) : (
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {estabelecimentos.map((local) => (
-                                <div
+                                <Link
                                     key={local.id}
-                                    className="group cursor-pointer overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
+                                    href={`/estabelecimento/${local.id}`}
+                                    className="group cursor-pointer overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md block"
                                 >
                                     <div className="relative aspect-video w-full overflow-hidden bg-muted">
                                         <Image
@@ -205,7 +208,7 @@ export default async function HomePage() {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
