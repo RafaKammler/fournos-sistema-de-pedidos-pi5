@@ -18,13 +18,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <div className="relative hidden bg-muted lg:block">
-        <img
-          src="/graosCafePretoBranco.png"
-          alt="Image"
-          className="absolute inset-0 w-full object-cover object-bottom dark:brightness-[0.2]"
-        />
-      </div>
+        <div className="hidden bg-muted lg:block h-full relative">
+            <img
+                src="/imagemLogineCadastro.png"
+                alt="Imagem de fundo"
+                className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            />
+        </div>
     </div>
   )
 }

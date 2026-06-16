@@ -4,12 +4,14 @@ import { useEffect, useState } from "react"
 import { useCartStore } from "@/store/cartStore"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, QrCode, CreditCard, Banknote } from "lucide-react"
+import { ArrowLeft, QrCode } from "lucide-react"
 import { toast } from "sonner"
+import Image from "next/image"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function CheckoutClient() {
     const [isMounted, setIsMounted] = useState<boolean>(false)
-    const [metodoPagamento, setMetodoPagamento] = useState<string>("PIX")
+    const [mostrarQrCode, setMostrarQrCode] = useState(false)
 
     const { items, limparCarrinho } = useCartStore()
     const router = useRouter()
@@ -25,17 +27,18 @@ export default function CheckoutClient() {
         return acc + ((item.precoBase + totalComplementos) * item.quantidade);
     }, 0);
 
+    const handleAbrirPagamento = () => {
+        setMostrarQrCode(true)
+    }
+
     const handleFinalizarPedido = () => {
-        // Dispara o toast elegante usando o Sonner
-        toast.success("Pedido finalizado com sucesso!", {
-            description: `Seu pagamento via ${metodoPagamento} foi registrado.`,
+        toast.success("Pedido confirmado com sucesso!", {
+            description: "Recebemos a confirmação do seu PIX e o pedido já foi para a cantina.",
         })
 
-        // Opcional: Se quiser limpar o carrinho e voltar pra home depois de uns segundos:
-        // setTimeout(() => {
-        //    limparCarrinho()
-        //    router.push("/home")
-        // }, 2000)
+        setMostrarQrCode(false)
+        limparCarrinho()
+        router.push("/home")
     }
 
     if (!isMounted) return null
@@ -80,7 +83,6 @@ export default function CheckoutClient() {
                                                 </p>
                                             </div>
 
-                                            {/* Mostra os adicionais no resumo do pedido também */}
                                             {item.complementos && item.complementos.length > 0 && (
                                                 <div className="mt-2 pl-3 border-l-2 border-primary/20 flex flex-col gap-1">
                                                     {item.complementos.map(c => (
@@ -113,38 +115,13 @@ export default function CheckoutClient() {
                             <h2 className="text-xl font-semibold mb-4 border-b border-border/50 pb-3">Pagamento</h2>
 
                             <div className="grid grid-cols-1 gap-3">
-                                <button
-                                    onClick={() => setMetodoPagamento("PIX")}
-                                    className={`flex items-center gap-3 p-4 rounded-xl border text-left cursor-pointer transition-all ${metodoPagamento === "PIX" ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted'}`}
-                                >
-                                    <QrCode className={`size-6 ${metodoPagamento === "PIX" ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <div className="flex items-center gap-3 p-4 rounded-xl border border-primary bg-primary/5 ring-1 ring-primary text-left">
+                                    <QrCode className="size-6 text-primary" />
                                     <div>
                                         <p className="font-semibold">PIX</p>
-                                        <p className="text-xs text-muted-foreground">Aprovação imediata</p>
+                                        <p className="text-xs text-muted-foreground">Único método disponível no momento</p>
                                     </div>
-                                </button>
-
-                                <button
-                                    onClick={() => setMetodoPagamento("CARTAO")}
-                                    className={`flex items-center gap-3 p-4 rounded-xl border text-left cursor-pointer transition-all ${metodoPagamento === "CARTAO" ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted'}`}
-                                >
-                                    <CreditCard className={`size-6 ${metodoPagamento === "CARTAO" ? 'text-primary' : 'text-muted-foreground'}`} />
-                                    <div>
-                                        <p className="font-semibold">Cartão (Crédito/Débito)</p>
-                                        <p className="text-xs text-muted-foreground">Pagar na maquininha</p>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => setMetodoPagamento("DINHEIRO")}
-                                    className={`flex items-center gap-3 p-4 rounded-xl border text-left cursor-pointer transition-all ${metodoPagamento === "DINHEIRO" ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted'}`}
-                                >
-                                    <Banknote className={`size-6 ${metodoPagamento === "DINHEIRO" ? 'text-primary' : 'text-muted-foreground'}`} />
-                                    <div>
-                                        <p className="font-semibold">Dinheiro</p>
-                                        <p className="text-xs text-muted-foreground">Pagar na retirada</p>
-                                    </div>
-                                </button>
+                                </div>
                             </div>
                         </section>
 
@@ -156,16 +133,51 @@ export default function CheckoutClient() {
                                 </span>
                             </div>
                             <Button
-                                className="w-full h-11 text-base font-semibold rounded-xl cursor-pointer transition-transform active:scale-[0.98]"
-                                onClick={handleFinalizarPedido}
+                                className="w-full h-11 text-base font-semibold rounded-xl cursor-pointer transition-transform active:scale-[0.98] gap-2"
+                                onClick={handleAbrirPagamento}
                             >
-                                Confirmar Pedido
+                                <QrCode className="size-5" />
+                                Gerar QR Code PIX
                             </Button>
                         </section>
                     </div>
-
                 </div>
             )}
+
+            {/* MODAL DO QR CODE ESTÁTICO */}
+            <Dialog open={mostrarQrCode} onOpenChange={setMostrarQrCode}>
+                <DialogContent className="sm:max-w-md flex flex-col items-center p-8 sm:rounded-3xl">
+                    <DialogHeader className="flex flex-col items-center w-full">
+                        <DialogTitle className="text-2xl font-bold text-center">Pagamento PIX</DialogTitle>
+                    </DialogHeader>
+
+                    <p className="text-muted-foreground text-center mt-2 text-sm">
+                        Escaneie o QR Code abaixo com o aplicativo do seu banco para pagar o valor de <strong className="text-foreground text-base">R$ {valorTotal.toFixed(2).replace('.', ',')}</strong>.
+                    </p>
+
+                    {/* Caixa do QR Code */}
+                    <div className="my-6 p-2 bg-white rounded-2xl border-4 border-primary/20 shadow-sm relative h-56 w-56">
+                        <Image
+                            src="/qr_code.jpg"
+                            alt="QR Code PIX"
+                            fill
+                            className="object-contain p-2"
+                        />
+                    </div>
+
+                    <p className="text-xs text-muted-foreground text-center mb-6 bg-muted p-3 rounded-lg border">
+                        Após finalizar a transferência pelo seu banco, clique no botão abaixo para confirmar seu pedido na cantina.
+                    </p>
+
+                    <Button
+                        className="w-full h-12 text-base font-bold rounded-xl cursor-pointer"
+                        onClick={handleFinalizarPedido}
+                    >
+                        Já realizei o pagamento
+                    </Button>
+                </DialogContent>
+            </Dialog>
+
         </main>
     )
 }

@@ -9,6 +9,7 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import Link from "next/link"
 
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -56,7 +57,9 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
         <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
             <FieldGroup>
                 <div className="flex flex-col items-center gap-1 text-center">
-                    <img src="/img.png" alt="Fournos logo" className="w-28 h-auto" />
+                    <Link href="/home" className="hover:opacity-80 transition-opacity cursor-pointer">
+                        <img src="/img.png" alt="Logo Fournos" className="h-20 w-auto" />
+                    </Link>
                     <h1 className="text-2xl font-bold">Crie sua conta</h1>
                     <p className="text-sm text-balance text-muted-foreground">
                         Preencha as informações para criar sua conta.

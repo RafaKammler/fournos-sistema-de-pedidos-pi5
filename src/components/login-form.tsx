@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import {
   Field,
@@ -53,8 +54,10 @@ export function LoginForm({
       <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-1 text-center">
-            <img src="/img.png" alt="Fournos logo" className="w-28 h-auto" />
-            <h1 className="text-2xl font-bold">Faça Login em sua Conta</h1>
+            <Link href="/home" className="hover:opacity-80 transition-opacity cursor-pointer">
+              <img src="/img.png" alt="Logo Fournos" className="h-20 w-auto" />
+            </Link>
+            <h1 className="text-2xl font-semibold tracking-tight">Faça Login em sua Conta</h1>
             <p className="text-sm text-balance text-muted-foreground">
               Insira seu e-mail abaixo para acessar sua conta
             </p>

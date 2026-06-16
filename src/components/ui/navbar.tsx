@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
 
 import { useCartStore } from "@/store/cartStore";
 import {
@@ -65,7 +66,6 @@ const Navbar = ({
     const { items, removeItem } = useCartStore();
     const totalItems = items.reduce((acc, item) => acc + item.quantidade, 0);
 
-    // Nova lógica de cálculo do valor total somando os complementos
     const valorTotal = items.reduce((acc, item) => {
         const totalComplementos = item.complementos?.reduce((cAcc, c) => cAcc + (c.preco * c.quantidade), 0) || 0;
         return acc + ((item.precoBase + totalComplementos) * item.quantidade);
@@ -147,7 +147,16 @@ const Navbar = ({
                     </div>
                     <Button
                         className="w-full h-11 text-base font-semibold rounded-xl transition-transform active:scale-[0.98] cursor-pointer"
-                        onClick={() => router.push("/checkout")}
+                        onClick={() => {
+                            if (isLogado) {
+                                router.push("/checkout")
+                            } else {
+                                toast.info("Faça login para continuar", {
+                                    description: "Você precisa de uma conta para finalizar o pedido."
+                                })
+                                router.push(auth.login.url)
+                            }
+                        }}
                     >
                         Avançar
                     </Button>
@@ -161,9 +170,13 @@ const Navbar = ({
             <div className="container mx-auto px-6">
                 {/* Desktop */}
                 <nav className="hidden lg:flex items-center justify-between h-16 relative">
-                    <a href={logo.url} className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
-                        <img src={logo.src} alt={logo.alt} className="h-7 w-7 dark:invert rounded-md" />
-                        <span className="text-lg font-bold tracking-tight text-primary">{logo.title}</span>
+                    <a href={logo.url} className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity">
+                        <img
+                            src={logo.src}
+                            alt={logo.alt}
+                            className="h-8 w-auto object-contain dark:brightness-150"
+                        />
+                        <span className="text-xl font-bold tracking-tight text-primary">{logo.title}</span>
                     </a>
 
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8">
@@ -215,8 +228,8 @@ const Navbar = ({
 
                 {/* Mobile */}
                 <div className="flex lg:hidden items-center justify-between h-14">
-                    <a href={logo.url} className="flex items-center gap-2">
-                        <img src={logo.src} alt={logo.alt} className="h-7 w-7 dark:invert rounded-md" />
+                    <a href={logo.url} className="flex items-center gap-2 shrink-0">
+                        <img src={logo.src} alt={logo.alt} className="h-7 w-auto object-contain dark:brightness-150" />
                         <span className="text-sm font-bold text-primary">{logo.title}</span>
                     </a>
 
