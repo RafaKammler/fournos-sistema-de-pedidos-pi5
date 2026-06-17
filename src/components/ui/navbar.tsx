@@ -30,6 +30,13 @@ interface NavbarProps {
     perfil?: string | null;
 }
 
+interface Notificacao {
+    id: number;
+    titulo: string;
+    mensagem: string;
+    pedidoId?: number;
+}
+
 const AnimatedNavLink = ({ item, isActive = false }: { item: MenuItem; isActive?: boolean; }) => {
     return (
         <a href={item.url} className="relative group flex flex-col overflow-hidden h-5 items-center" style={{ perspective: "100px" }}>
@@ -59,7 +66,8 @@ const Navbar = ({
     const [isMounted, setIsMounted] = useState<boolean>(false);
 
     // Estados para Notificações
-    const [notificacoes, setNotificacoes] = useState<any[]>([]);
+    const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+    const [notificacoesAntigas, setNotificacoesAntigas] = useState<Notificacao[]>([]);
     const [menuNotifAberto, setMenuNotifAberto] = useState(false);
 
     const isLogado = !!perfil;
@@ -106,19 +114,53 @@ const Navbar = ({
         });
     };
 
-    const handleAbrirNotificacoes = async () => {
+    const handleAbrirNotificacoes = () => {
         const vaiAbrir = !menuNotifAberto;
         setMenuNotifAberto(vaiAbrir);
 
-        // 1. Se o menu está abrindo e existem notificações, avisa o backend que foram lidas
-        if (vaiAbrir && notificacoes.length > 0) {
-            // Chamamos a API em segundo plano, mantendo os itens na tela para o usuário ler
-            await fetch("/api/notificacoes", { method: "PUT" }).catch(console.error);
+        if (!vaiAbrir) {
+            setNotificacoesAntigas([]);
+        }
+    };
+
+    const handleMarcarComoLidas = async () => {
+        try {
+            await fetch("/api/notificacoes", { method: "PUT" });
+            setNotificacoesAntigas((prev) => [...notificacoes, ...prev]);
+            setNotificacoes([]);
+        } catch (error) {
+            console.error("Erro ao limpar notificações", error);
+        }
+    };
+
+
+    const handleClicarNotificacao = (n: Notificacao) => {
+        setMenuNotifAberto(false); // Fecha o menu primeiro
+
+        const textoCompleto = (n.titulo + " " + n.mensagem).toLowerCase();
+
+        if (perfil === "GERENTE" && (textoCompleto.includes("novo") || textoCompleto.includes("recebido") || textoCompleto.includes("chegou"))) {
+            router.push("/restrito/gerente");
+            return;
         }
 
-        // 2. Se o menu está fechando (usuário já leu), limpa o estado local para zerar o contador do sininho
-        if (!vaiAbrir) {
-            setNotificacoes([]);
+        if (n.pedidoId) {
+            router.push(`/restrito/pedidos/${n.pedidoId}`);
+            return;
+        }
+
+        const match = (n.titulo + " " + n.mensagem).match(/#(\d+)/);
+        if (match && match[1]) {
+            router.push(`/restrito/pedidos/${match[1]}`);
+            return;
+        }
+
+        if (perfil === "GERENTE") {
+            router.push("/restrito/gerente");
+        } else if (perfil === "ADMIN") {
+            router.push("/restrito/admin");
+        } else {
+            router.push("/restrito/meus-pedidos");
         }
     };
 
@@ -204,7 +246,6 @@ const Navbar = ({
         </SheetContent>
     );
 
-    // Variável que guarda o JSX das notificações (Resolve o erro do ESLint)
     const notificacoesConteudo = isMounted && isLogado ? (
         <div className="relative">
             <button
@@ -220,20 +261,71 @@ const Navbar = ({
             </button>
 
             {menuNotifAberto && (
-                <div className="absolute right-0 mt-2 w-80 bg-card border rounded-xl shadow-lg py-2 z-50 text-left">
-                    <div className="px-4 py-2 border-b font-semibold text-sm">
-                        Notificações
+                <div className="absolute right-0 mt-2 w-80 bg-card border rounded-xl shadow-lg py-2 z-50 text-left overflow-hidden">
+                    <div className="px-4 py-2 border-b flex justify-between items-center bg-muted/10">
+                        <span className="font-semibold text-sm">Notificações</span>
+                        {notificacoes.length > 0 && (
+                            <button
+                                onClick={handleMarcarComoLidas}
+                                className="text-xs text-primary hover:underline cursor-pointer font-medium"
+                            >
+                                Marcar como lidas
+                            </button>
+                        )}
                     </div>
-                    <div className="max-h-64 overflow-y-auto divide-y divide-border">
-                        {notificacoes.length === 0 ? (
-                            <p className="text-xs text-muted-foreground text-center py-4">Nenhuma notificação nova.</p>
+
+                    <div className="max-h-[22rem] overflow-y-auto">
+                        {notificacoes.length === 0 && notificacoesAntigas.length === 0 ? (
+                            <div className="py-8 text-center px-4">
+                                <Bell className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground">Você não tem novas notificações.</p>
+                            </div>
                         ) : (
-                            notificacoes.map((n) => (
-                                <div key={n.id} className="p-3 hover:bg-muted/30 transition-colors">
-                                    <p className="text-xs font-bold text-foreground">{n.titulo}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{n.mensagem}</p>
-                                </div>
-                            ))
+                            <div className="flex flex-col">
+
+                                {/* BLOCO: NOVAS */}
+                                {notificacoes.length > 0 && (
+                                    <>
+                                        <div className="px-4 py-1.5 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b">
+                                            Novas
+                                        </div>
+                                        <div className="divide-y divide-border">
+                                            {notificacoes.map((n) => (
+                                                <div
+                                                    key={n.id}
+                                                    onClick={() => handleClicarNotificacao(n)}
+                                                    className="p-3 bg-primary/5 hover:bg-primary/10 transition-colors border-l-2 border-primary cursor-pointer"
+                                                >
+                                                    <p className="text-sm font-bold text-foreground leading-tight mb-0.5">{n.titulo}</p>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">{n.mensagem}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* BLOCO: ANTIGAS */}
+                                {notificacoesAntigas.length > 0 && (
+                                    <>
+                                        <div className="px-4 py-1.5 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-t first:border-t-0">
+                                            Anteriores
+                                        </div>
+                                        <div className="divide-y divide-border">
+                                            {notificacoesAntigas.map((n, i) => (
+                                                <div
+                                                    key={n.id || `antiga-${i}`}
+                                                    onClick={() => handleClicarNotificacao(n)}
+                                                    className="p-3 opacity-60 hover:opacity-100 hover:bg-muted/30 transition-all cursor-pointer"
+                                                >
+                                                    <p className="text-sm font-semibold text-foreground leading-tight mb-0.5">{n.titulo}</p>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">{n.mensagem}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                            </div>
                         )}
                     </div>
                 </div>

@@ -79,7 +79,7 @@ export default async function MeusPedidosPage() {
                 ) : (
                     <div className="flex flex-col gap-6">
                         {pedidos.map(pedido => (
-                            <div key={pedido.id} className="p-6 bg-card border rounded-2xl shadow-sm flex flex-col sm:flex-row gap-6 justify-between">
+                            <Link key={pedido.id} href={`/restrito/pedidos/${pedido.id}`} className="p-6 bg-card border rounded-2xl shadow-sm flex flex-col sm:flex-row gap-6 justify-between hover:border-primary/50 transition-colors cursor-pointer block">
                                 <div className="space-y-3 flex-1">
                                     <div className="flex items-center gap-3">
                                         <h3 className="font-bold text-lg">{pedido.estabelecimento.nome}</h3>
@@ -106,7 +106,7 @@ export default async function MeusPedidosPage() {
                                         R$ {pedido.total.toFixed(2).replace('.', ',')}
                                     </span>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}

@@ -70,11 +70,12 @@ export default function CheckoutClient() {
 
             setMostrarQrCode(false)
             limparCarrinho()
-            router.push("/home")
+            router.push("/restrito/meus-pedidos")
 
-        } catch (error: any) {
+        } catch (error) {
+            const mensagem = error instanceof Error ? error.message : "Tente novamente em instantes.";
             toast.error("Erro ao finalizar", {
-                description: error.message || "Tente novamente em instantes."
+                description: mensagem
             });
         } finally {
             setIsSubmitting(false);
