@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useCartStore } from "@/store/cartStore"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, QrCode } from "lucide-react"
+import { ArrowLeft, QrCode, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -12,12 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export default function CheckoutClient() {
     const [isMounted, setIsMounted] = useState<boolean>(false)
     const [mostrarQrCode, setMostrarQrCode] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false) // Controle de carregamento
 
     const { items, limparCarrinho } = useCartStore()
     const router = useRouter()
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(true)
     }, [])
 
@@ -31,14 +31,54 @@ export default function CheckoutClient() {
         setMostrarQrCode(true)
     }
 
-    const handleFinalizarPedido = () => {
-        toast.success("Pedido confirmado com sucesso!", {
-            description: "Recebemos a confirmação do seu PIX e o pedido já foi para a cantina.",
-        })
+    const handleFinalizarPedido = async () => {
+        if (items.length === 0) return;
+        setIsSubmitting(true);
 
-        setMostrarQrCode(false)
-        limparCarrinho()
-        router.push("/home")
+        try {
+            // Assume que todos os produtos do carrinho pertencem ao mesmo estabelecimento
+            const estabelecimentoId = items[0].estabelecimentoId;
+
+            // Formata o payload exigido pela nossa API de checkout
+            const payload = {
+                estabelecimentoId,
+                total: valorTotal,
+                itens: items.map(item => {
+                    const totalComplementos = item.complementos?.reduce((acc, c) => acc + (c.preco * c.quantidade), 0) || 0;
+                    return {
+                        produtoId: item.produtoId,
+                        quantidade: item.quantidade,
+                        precoUn: item.precoBase + totalComplementos
+                    };
+                })
+            };
+
+            const response = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Falha ao registrar o pedido no sistema.");
+            }
+
+            toast.success("Pedido confirmado com sucesso!", {
+                description: "Recebemos a confirmação do seu PIX e o pedido já foi para a cantina.",
+            })
+
+            setMostrarQrCode(false)
+            limparCarrinho()
+            router.push("/home")
+
+        } catch (error: any) {
+            toast.error("Erro ao finalizar", {
+                description: error.message || "Tente novamente em instantes."
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     if (!isMounted) return null
@@ -170,10 +210,18 @@ export default function CheckoutClient() {
                     </p>
 
                     <Button
-                        className="w-full h-12 text-base font-bold rounded-xl cursor-pointer"
+                        className="w-full h-12 text-base font-bold rounded-xl cursor-pointer flex items-center gap-2"
                         onClick={handleFinalizarPedido}
+                        disabled={isSubmitting}
                     >
-                        Já realizei o pagamento
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="size-5 animate-spin" />
+                                Processando...
+                            </>
+                        ) : (
+                            "Já realizei o pagamento"
+                        )}
                     </Button>
                 </DialogContent>
             </Dialog>

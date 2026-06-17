@@ -18,6 +18,6 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ message: "Vinculado com sucesso" }, { status: 201 })
     } catch (error) {
-        return NextResponse.json({ message: "Erro ao vincular complemento." }, { status: 500 })
+        return NextResponse.json({ message: "Erro ao vincular complementos." }, { status: 500 })
     }
 }

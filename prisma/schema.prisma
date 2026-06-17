@@ -1,6 +1,6 @@
 // prisma/schema.prisma
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -24,23 +24,32 @@ enum StatusNotificacao {
   LIDA
 }
 
+enum StatusPedido {
+  PENDENTE
+  PREPARANDO
+  PRONTO
+  FINALIZADO
+  CANCELADO
+}
+
 model Usuario {
-  id          Int       @id @default(autoincrement())
-  nome        String
-  email       String    @unique
-  senha       String
-  perfil      Perfil
-  dataCadastro DateTime @default(now())
-  gerente     Gerente?
+  id           Int       @id @default(autoincrement())
+  nome         String
+  email        String    @unique
+  senha        String
+  perfil       Perfil
+  dataCadastro DateTime  @default(now())
+  gerente      Gerente?
+  pedidos      Pedido[]
+  notificacoes Notificacao[]
 }
 
 model Gerente {
-  id               Int             @id @default(autoincrement())
-  usuarioId        Int             @unique
-  usuario          Usuario         @relation(fields: [usuarioId], references: [id])
-  estabelecimentoId Int?
-  estabelecimento  Estabelecimento? @relation(fields: [estabelecimentoId], references: [id])
-  dataCadastro     DateTime        @default(now())
+  id               Int               @id @default(autoincrement())
+  usuarioId        Int               @unique
+  usuario          Usuario           @relation(fields: [usuarioId], references: [id])
+  estabelecimentos Estabelecimento[]
+  dataCadastro     DateTime          @default(now())
 }
 
 model Estabelecimento {
@@ -52,11 +61,13 @@ model Estabelecimento {
   caminhoImagem String
   cep           String
   dataCadastro  DateTime      @default(now())
-  gerentes      Gerente[]
+  gerenteId     Int?
+  gerente       Gerente?      @relation(fields: [gerenteId], references: [id], onDelete: SetNull)
+
   produtos      Produto[]
   notificacoes  Notificacao[]
-
-  complementos Complemento[]
+  complementos  Complemento[]
+  pedidos       Pedido[]
 }
 
 model Produto {
@@ -70,6 +81,7 @@ model Produto {
   estabelecimento   Estabelecimento      @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
   dataCadastro      DateTime             @default(now())
   complementos      ProdutoComplemento[]
+  itensPedido       ItemPedido[]
 }
 
 model Complemento {
@@ -97,7 +109,32 @@ model Notificacao {
   mensagem          String
   tipo              TipoNotificacao   @default(INFORMATIVA)
   status            StatusNotificacao @default(NAO_LIDA)
-  estabelecimentoId Int
-  estabelecimento   Estabelecimento   @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  usuarioId         Int?
+  usuario           Usuario?          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  estabelecimentoId Int?
+  estabelecimento   Estabelecimento?  @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
   dataCriacao       DateTime          @default(now())
+}
+
+model Pedido {
+  id                Int             @id @default(autoincrement())
+  total             Float
+  status            StatusPedido    @default(PENDENTE)
+  usuarioId         Int
+  usuario           Usuario         @relation(fields: [usuarioId], references: [id])
+  estabelecimentoId Int
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  dataPedido        DateTime        @default(now())
+  itens             ItemPedido[]
+}
+
+model ItemPedido {
+  id          Int     @id @default(autoincrement())
+  quantidade  Int
+  precoUn     Float
+  pedidoId    Int
+  pedido      Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId   Int
+  produto     Produto @relation(fields: [produtoId], references: [id])
 }

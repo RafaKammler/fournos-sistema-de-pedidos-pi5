@@ -24,7 +24,7 @@ export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any,
         email: usuario?.email || "",
         senha: "",
         perfil: usuario?.perfil || "USUARIO",
-        estabelecimentoId: usuario?.gerente?.estabelecimentoId?.toString() || ""
+        estabelecimentoId: usuario?.gerente?.estabelecimentos?.[0]?.id?.toString() || ""
     })
 
     const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})

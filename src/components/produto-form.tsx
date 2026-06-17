@@ -14,9 +14,11 @@ type FormState = {
     disponivel: boolean
 }
 
-export function ProdutoForm({ produto, estabelecimentoId }: { produto?: any, estabelecimentoId: string }) {
+export function ProdutoForm({ produto, estabelecimentoId, returnUrl }: { produto?: any, estabelecimentoId: string, returnUrl?: string }) {
     const router = useRouter()
     const isEditing = !!produto?.id
+
+    const urlDestino = returnUrl || `/restrito/estabelecimento/${estabelecimentoId}`
 
     function formatarMoeda(valor: string | number) {
         if (typeof valor === 'number') {
@@ -104,7 +106,7 @@ export function ProdutoForm({ produto, estabelecimentoId }: { produto?: any, est
             setMessage(isEditing ? "Produto atualizado com sucesso." : "Produto cadastrado com sucesso.")
 
             setTimeout(() => {
-                router.push(`/restrito/estabelecimento/${estabelecimentoId}`)
+                router.push(urlDestino) // Utilizamos a variável dinâmica aqui
                 router.refresh()
             }, 1500)
 
@@ -181,7 +183,7 @@ export function ProdutoForm({ produto, estabelecimentoId }: { produto?: any, est
                         )}
 
                         <div className="pt-6 mt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Button type="button" variant="outline" onClick={() => router.push(`/restrito/estabelecimento/${estabelecimentoId}`)} className="w-full py-3">Cancelar</Button>
+                            <Button type="button" variant="outline" onClick={() => router.push(urlDestino)} className="w-full py-3">Cancelar</Button>
                             <Button type="submit" disabled={loading} className="w-full py-3">{loading ? "Salvando..." : "Salvar Produto"}</Button>
                         </div>
                     </form>

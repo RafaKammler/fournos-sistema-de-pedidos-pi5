@@ -1,14 +1,12 @@
 "use client";
 
-import { Menu, X, LogOut, ShoppingCart, LayoutDashboard, Trash2 } from "lucide-react";
+import { Menu, X, LogOut, ShoppingCart, LayoutDashboard, Trash2, Bell } from "lucide-react";
 import { useState, useTransition, useEffect } from "react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { useLocationTime } from "@/app/hooks/useLocationTime";
 import { logoutAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { toast } from "sonner";
 
 import { useCartStore } from "@/store/cartStore";
@@ -48,7 +46,8 @@ const AnimatedNavLink = ({ item, isActive = false }: { item: MenuItem; isActive?
 
 const Navbar = ({
                     logo = { url: "/home", src: "/img.png", alt: "logo", title: "Fournos" },
-                    menu = [{ title: "Home", url: "/home" }, { title: "Categorias", url: "/home#categorias" }],
+                    menu = [{title: "Home", url: "/home"}, {title: "Categorias", url: "/home#categorias"},
+                        {title: "Meus Pedidos", url: "/restrito/meus-pedidos"}],
                     auth = { login: { title: "Login", url: "/login" }, signup: { title: "Cadastrar", url: "/register" } },
                     perfil = null,
                 }: NavbarProps) => {
@@ -58,10 +57,38 @@ const Navbar = ({
     const router = useRouter();
 
     const [isMounted, setIsMounted] = useState<boolean>(false);
+
+    // Estados para Notificações
+    const [notificacoes, setNotificacoes] = useState<any[]>([]);
+    const [menuNotifAberto, setMenuNotifAberto] = useState(false);
+
+    const isLogado = !!perfil;
+
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(() => true);
     }, []);
+
+    // Polling de Notificações
+    useEffect(() => {
+        if (isMounted && isLogado) {
+            const buscarNotificacoes = async () => {
+                try {
+                    const res = await fetch("/api/notificacoes");
+                    if (res.ok) {
+                        const data = await res.json();
+                        setNotificacoes(data);
+                    }
+                } catch (err) {
+                    console.error("Erro ao carregar notificações", err);
+                }
+            };
+
+            buscarNotificacoes();
+            const interval = setInterval(buscarNotificacoes, 15000); // Atualiza a cada 15s
+            return () => clearInterval(interval);
+        }
+    }, [isMounted, isLogado]);
 
     const { items, removeItem } = useCartStore();
     const totalItems = items.reduce((acc, item) => acc + item.quantidade, 0);
@@ -72,8 +99,6 @@ const Navbar = ({
     }, 0);
 
     const locationDisplay = loading ? "..." : `${location}  /  ${time}`;
-    const isLogado = !!perfil;
-    const isAdminOuGerente = perfil === "ADMIN" || perfil === "GERENTE";
 
     const handleLogout = () => {
         startTransition(() => {
@@ -81,8 +106,24 @@ const Navbar = ({
         });
     };
 
+    const handleAbrirNotificacoes = async () => {
+        const vaiAbrir = !menuNotifAberto;
+        setMenuNotifAberto(vaiAbrir);
+
+        // 1. Se o menu está abrindo e existem notificações, avisa o backend que foram lidas
+        if (vaiAbrir && notificacoes.length > 0) {
+            // Chamamos a API em segundo plano, mantendo os itens na tela para o usuário ler
+            await fetch("/api/notificacoes", { method: "PUT" }).catch(console.error);
+        }
+
+        // 2. Se o menu está fechando (usuário já leu), limpa o estado local para zerar o contador do sininho
+        if (!vaiAbrir) {
+            setNotificacoes([]);
+        }
+    };
+
     const carrinhoConteudo = (
-        <SheetContent className="w-full sm:max-w-md flex flex-col bg-background p-0">
+        <SheetContent className="w-full sm:max-w-md flex flex-col bg-background p-0 z-[100]">
             <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/50">
                 <SheetTitle className="text-lg font-bold tracking-tight">Seu Pedido</SheetTitle>
             </SheetHeader>
@@ -96,7 +137,6 @@ const Navbar = ({
                 ) : (
                     <div className="flex flex-col gap-4">
                         {items.map((item) => {
-                            // Calcula o preço deste item específico somando seus complementos
                             const totalComplementos = item.complementos?.reduce((acc, c) => acc + (c.preco * c.quantidade), 0) || 0;
                             const precoFinalItem = item.precoBase + totalComplementos;
 
@@ -105,7 +145,6 @@ const Navbar = ({
                                     <div className="flex-1 pr-4">
                                         <h4 className="font-medium text-base mb-1">{item.nome}</h4>
 
-                                        {/* Renderiza os complementos escolhidos */}
                                         {item.complementos && item.complementos.length > 0 && (
                                             <div className="flex flex-col mb-1">
                                                 {item.complementos.map(c => (
@@ -165,6 +204,43 @@ const Navbar = ({
         </SheetContent>
     );
 
+    // Variável que guarda o JSX das notificações (Resolve o erro do ESLint)
+    const notificacoesConteudo = isMounted && isLogado ? (
+        <div className="relative">
+            <button
+                onClick={handleAbrirNotificacoes}
+                className="p-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center relative"
+            >
+                <Bell className="size-5" />
+                {notificacoes.length > 0 && (
+                    <span className="absolute top-0 right-0 bg-orange-600 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full animate-pulse">
+                        {notificacoes.length}
+                    </span>
+                )}
+            </button>
+
+            {menuNotifAberto && (
+                <div className="absolute right-0 mt-2 w-80 bg-card border rounded-xl shadow-lg py-2 z-50 text-left">
+                    <div className="px-4 py-2 border-b font-semibold text-sm">
+                        Notificações
+                    </div>
+                    <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                        {notificacoes.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-4">Nenhuma notificação nova.</p>
+                        ) : (
+                            notificacoes.map((n) => (
+                                <div key={n.id} className="p-3 hover:bg-muted/30 transition-colors">
+                                    <p className="text-xs font-bold text-foreground">{n.titulo}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{n.mensagem}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    ) : null;
+
     return (
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-6">
@@ -190,6 +266,10 @@ const Navbar = ({
                             {locationDisplay}
                         </div>
 
+                        {/* Sininho de Notificações */}
+                        {notificacoesConteudo}
+
+                        {/* Carrinho */}
                         {isMounted && (
                             <Sheet>
                                 <SheetTrigger className="relative p-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center">
@@ -208,11 +288,17 @@ const Navbar = ({
 
                         {isLogado ? (
                             <div className="flex items-center gap-4 border-l border-border pl-6">
-                                {isAdminOuGerente && (
+                                {perfil === "ADMIN" && (
                                     <a href="/restrito/admin" className="text-sm font-medium text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
-                                        <LayoutDashboard className="size-4" /> Admin
+                                        <LayoutDashboard className="size-4" /> Painel Admin
                                     </a>
                                 )}
+                                {perfil === "GERENTE" && (
+                                    <a href="/restrito/gerente" className="text-sm font-medium text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
+                                        <LayoutDashboard className="size-4" /> Painel do Gerente
+                                    </a>
+                                )}
+
                                 <button onClick={handleLogout} disabled={isPending} className="flex items-center gap-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50 cursor-pointer">
                                     <LogOut className="size-4" /> Sair
                                 </button>
@@ -234,6 +320,10 @@ const Navbar = ({
                     </a>
 
                     <div className="flex items-center gap-3">
+                        {/* Sininho de Notificações */}
+                        {notificacoesConteudo}
+
+                        {/* Carrinho */}
                         {isMounted && (
                             <Sheet>
                                 <SheetTrigger className="relative p-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center">
@@ -266,11 +356,17 @@ const Navbar = ({
                         <div className="mt-4 flex flex-col gap-2 pt-4 border-t border-border/40">
                             {isLogado ? (
                                 <>
-                                    {isAdminOuGerente && (
+                                    {perfil === "ADMIN" && (
                                         <a href="/restrito/admin" className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-md">
                                             <LayoutDashboard className="size-4" /> Painel Admin
                                         </a>
                                     )}
+                                    {perfil === "GERENTE" && (
+                                        <a href="/restrito/gerente" className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-md">
+                                            <LayoutDashboard className="size-4" /> Painel do Gerente
+                                        </a>
+                                    )}
+
                                     <button onClick={handleLogout} disabled={isPending} className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-destructive/10 text-destructive border border-destructive/20 rounded-md cursor-pointer">
                                         <LogOut className="size-4" /> {isPending ? "Saindo..." : "Sair da Conta"}
                                     </button>

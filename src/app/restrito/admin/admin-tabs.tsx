@@ -137,7 +137,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                 router.refresh()
             } else {
                 const data = await res.json()
-                toast.error(data.message || "Erro ao excluir complemento.")
+                toast.error(data.message || "Erro ao excluir complementos.")
             }
         } catch (error) {
             toast.error("Erro de conexão ao tentar excluir.")
@@ -200,7 +200,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                 router.refresh()
             } else {
                 const data = await res.json()
-                toast.error(data.message || "Erro ao cadastrar complemento.")
+                toast.error(data.message || "Erro ao cadastrar complementos.")
             }
         } catch (error) {
             toast.error("Erro de conexão ao tentar cadastrar.")

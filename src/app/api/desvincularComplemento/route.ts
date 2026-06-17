@@ -20,6 +20,6 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ message: "Desvinculado com sucesso" }, { status: 200 })
     } catch (error) {
-        return NextResponse.json({ message: "Erro ao desvincular complemento." }, { status: 500 })
+        return NextResponse.json({ message: "Erro ao desvincular complementos." }, { status: 500 })
     }
 }

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs"
 export const UsuarioService = {
     async buscarTodos() {
         return prisma.usuario.findMany({
-            orderBy: {dataCadastro: 'desc'},
+            orderBy: { dataCadastro: 'desc' },
             select: {
                 id: true,
                 nome: true,
@@ -17,8 +17,8 @@ export const UsuarioService = {
 
     async buscarPorId(id: number) {
         return prisma.usuario.findUnique({
-            where: {id},
-            select: {id: true, nome: true, email: true, perfil: true}
+            where: { id },
+            select: { id: true, nome: true, email: true, perfil: true }
         });
     },
 
@@ -37,7 +37,6 @@ export const UsuarioService = {
 
         const senhaHash = await bcrypt.hash(data.senha, 10)
 
-        // Se o perfil for GERENTE, usamos nested writes para criar ambos ao mesmo tempo
         const userData: any = {
             nome: data.nome,
             email: data.email,
@@ -45,17 +44,25 @@ export const UsuarioService = {
             perfil: data.perfil
         }
 
-        if (data.perfil === "GERENTE" && data.estabelecimentoId) {
+        if (data.perfil === "GERENTE") {
             userData.gerente = {
-                create: {
-                    estabelecimentoId: parseInt(data.estabelecimentoId)
-                }
+                create: {}
             }
         }
 
-        return prisma.usuario.create({
-            data: userData
+        const novoUsuario = await prisma.usuario.create({
+            data: userData,
+            include: { gerente: true }
         });
+
+        if (novoUsuario.perfil === "GERENTE" && data.estabelecimentoId && novoUsuario.gerente) {
+            await prisma.estabelecimento.update({
+                where: { id: parseInt(data.estabelecimentoId) },
+                data: { gerenteId: novoUsuario.gerente.id }
+            });
+        }
+
+        return novoUsuario;
     },
 
     async atualizar(id: number, data: any) {
@@ -81,31 +88,34 @@ export const UsuarioService = {
             updateData.senha = await bcrypt.hash(data.senha, 10)
         }
 
-        if (data.perfil === "GERENTE" && data.estabelecimentoId) {
+        if (data.perfil === "GERENTE") {
             updateData.gerente = {
                 upsert: {
-                    create: { estabelecimentoId: parseInt(data.estabelecimentoId) },
-                    update: { estabelecimentoId: parseInt(data.estabelecimentoId) }
+                    create: {},
+                    update: {}
                 }
             }
-        } else {
-            updateData.gerente = {
-                delete: true
-            }
         }
 
-        if (data.perfil !== "GERENTE") {
-            const isManager = await prisma.gerente.findUnique({ where: { usuarioId: id }})
-            if (isManager) {
-                await prisma.gerente.delete({ where: { usuarioId: id }})
-            }
-            delete updateData.gerente // Removemos para o prisma.update não tentar deletar novamente
-        }
-
-        return prisma.usuario.update({
-            where: {id},
-            data: updateData
+        const usuarioAtualizado = await prisma.usuario.update({
+            where: { id },
+            data: updateData,
+            include: { gerente: true }
         });
+
+        if (usuarioAtualizado.perfil === "GERENTE" && data.estabelecimentoId && usuarioAtualizado.gerente) {
+            await prisma.estabelecimento.update({
+                where: { id: parseInt(data.estabelecimentoId) },
+                data: { gerenteId: usuarioAtualizado.gerente.id }
+            });
+        } else if (data.perfil !== "GERENTE") {
+            const isManager = await prisma.gerente.findUnique({ where: { usuarioId: id } })
+            if (isManager) {
+                await prisma.gerente.delete({ where: { usuarioId: id } })
+            }
+        }
+
+        return usuarioAtualizado;
     },
 
     async excluir(id: number) {
@@ -125,7 +135,7 @@ export const UsuarioService = {
         }
 
         return prisma.usuario.delete({
-            where: {id}
+            where: { id }
         });
     }
 }

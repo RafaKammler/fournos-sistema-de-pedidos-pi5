@@ -43,7 +43,7 @@ export function ProdutoDetalhesTabs({ produto, complementosDisponiveis = [] }: {
                 router.refresh()
             } else {
                 const data = await res.json()
-                toast.error(data.message || "Erro ao vincular complemento.")
+                toast.error(data.message || "Erro ao vincular complementos.")
             }
         } catch (error) {
             toast.error("Erro de conexão ao tentar vincular.")
@@ -53,7 +53,7 @@ export function ProdutoDetalhesTabs({ produto, complementosDisponiveis = [] }: {
     }
 
     async function handleDesvincular(complementoId: number) {
-        if (!confirm("Deseja desvincular este complemento do produto?")) return
+        if (!confirm("Deseja desvincular este complementos do produto?")) return
 
         setIsUnlinking(complementoId)
         try {
@@ -71,7 +71,7 @@ export function ProdutoDetalhesTabs({ produto, complementosDisponiveis = [] }: {
                 router.refresh()
             } else {
                 const data = await res.json()
-                toast.error(data.message || "Erro ao desvincular complemento.")
+                toast.error(data.message || "Erro ao desvincular complementos.")
             }
         } catch (error) {
             toast.error("Erro de conexão ao tentar desvincular.")

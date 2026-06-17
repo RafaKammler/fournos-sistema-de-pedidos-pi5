@@ -19,7 +19,17 @@ type FormState = {
     gerenteEmail: string
 }
 
-export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any }) {
+export function EstabelecimentoForm({
+                                        estabelecimento,
+                                        returnUrl = "/restrito/admin",
+                                        isGerente = false,
+                                        perfil = "ADMIN" // Padrão ADMIN para não quebrar as telas existentes do administrador
+                                    }: {
+    estabelecimento?: any,
+    returnUrl?: string,
+    isGerente?: boolean,
+    perfil?: string | null
+}) {
     const router = useRouter()
     const isEditing = !!estabelecimento?.id
 
@@ -136,7 +146,7 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
         const cepDigits = cleanDigits(form.cep)
         if (cepDigits && cepDigits.length !== 8) e.cep = "CEP deve ter 8 dígitos."
 
-        if (form.gerenteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.gerenteEmail)) {
+        if (!isGerente && form.gerenteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.gerenteEmail)) {
             e.gerenteEmail = "Email do gerente inválido."
         }
 
@@ -162,9 +172,11 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
             formData.append("rua", form.rua.trim())
             formData.append("cidade", form.cidade.trim())
             formData.append("estado", form.estado.trim())
-            if (form.gerenteEmail.trim()) {
+
+            if (!isGerente && form.gerenteEmail.trim()) {
                 formData.append("gerenteEmail", form.gerenteEmail.trim())
             }
+
             if (imagem) {
                 formData.append("imagem", imagem)
             }
@@ -182,10 +194,10 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                 throw new Error(body?.message || `Erro: ${res.status}`)
             }
 
-            setMessage(isEditing ? "Estabelecimento atualizado com sucesso." : "Estabelecimento cadastrado com sucesso.")
+            setMessage(isEditing ? "Estabelecimento updated com sucesso." : "Estabelecimento cadastrado com sucesso.")
 
             setTimeout(() => {
-                router.push("/restrito/admin")
+                router.push(returnUrl)
                 router.refresh()
             }, 1500)
 
@@ -198,14 +210,16 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
 
     return (
         <div className="min-h-screen bg-background text-foreground">
+            {/* A Navbar voltou para cá, agora controlada dinamicamente */}
             <Navbar
+                perfil={perfil}
                 logo={{
-                    url: "/restrito/admin",
+                    url: isGerente ? "/restrito/gerente" : "/restrito/admin",
                     src: "/img.png",
                     alt: "Fournos Logo",
                     title: "Fournos"
                 }}
-                menu={[]}
+                menu={isGerente ? [{ title: "Home", url: "/home" }] : []}
             />
             <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 <div className="mb-8">
@@ -238,10 +252,7 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                                             className="w-64 h-64 object-cover rounded-xl border border-border shadow-sm"
                                         />
                                     ) : (
-                                        <div className="w-64 h-64 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted hover:bg-muted/80 transition-colors p-4 text-center">
-                                            <svg className="h-10 w-10 text-muted-foreground mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                                            </svg>
+                                        <div className="w-64 h-64 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted p-4 text-center">
                                             <span className="text-sm text-muted-foreground font-medium">Nenhuma imagem selecionada</span>
                                         </div>
                                     )}
@@ -305,7 +316,9 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
 
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <Field>
-                                    <FieldLabel htmlFor="cnpj" className="font-medium">CNPJ</FieldLabel>
+                                    <FieldLabel htmlFor="cnpj" className="font-medium">
+                                        CNPJ {isGerente && <span className="text-muted-foreground font-normal">(Apenas leitura)</span>}
+                                    </FieldLabel>
                                     <Input
                                         id="cnpj"
                                         name="cnpj"
@@ -316,6 +329,9 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                                         required
                                         maxLength={18}
                                         className="mt-1"
+                                        disabled={isGerente}
+                                        // eslint-disable-next-line react/jsx-no-duplicate-props
+                                        readOnly={isGerente}
                                     />
                                     {errors.cnpj && <FieldDescription className="text-red-500 text-sm mt-1">{errors.cnpj}</FieldDescription>}
                                 </Field>
@@ -358,7 +374,7 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                                         type="button"
                                         onClick={handleSearchCEP}
                                         disabled={loadingCep}
-                                        className="px-5 bg-muted text-muted-foreground hover:bg-muted/80 border border-border shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="px-5 bg-muted text-muted-foreground hover:bg-muted/80 border border-border shadow-sm disabled:opacity-70"
                                     >
                                         {loadingCep ? "Buscando..." : "Pesquisar"}
                                     </Button>
@@ -383,24 +399,26 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                             </div>
                         </FieldGroup>
 
-                        <FieldGroup className="space-y-6 pt-6 border-t border-border">
-                            <Field>
-                                <FieldLabel htmlFor="gerenteEmail" className="font-medium">
-                                    Email do Gerente <span className="text-muted-foreground font-normal">(Opcional)</span>
-                                </FieldLabel>
-                                <Input
-                                    id="gerenteEmail"
-                                    name="gerenteEmail"
-                                    type="email"
-                                    value={form.gerenteEmail}
-                                    onChange={(e) => handleChange("gerenteEmail", e.target.value)}
-                                    placeholder="gerente@exemplo.com"
-                                    aria-invalid={!!errors.gerenteEmail}
-                                    className="mt-1"
-                                />
-                                {errors.gerenteEmail && <FieldDescription className="text-red-500 text-sm mt-1">{errors.gerenteEmail}</FieldDescription>}
-                            </Field>
-                        </FieldGroup>
+                        {!isGerente && (
+                            <FieldGroup className="space-y-6 pt-6 border-t border-border">
+                                <Field>
+                                    <FieldLabel htmlFor="gerenteEmail" className="font-medium">
+                                        Email do Gerente <span className="text-muted-foreground font-normal">(Opcional)</span>
+                                    </FieldLabel>
+                                    <Input
+                                        id="gerenteEmail"
+                                        name="gerenteEmail"
+                                        type="email"
+                                        value={form.gerenteEmail}
+                                        onChange={(e) => handleChange("gerenteEmail", e.target.value)}
+                                        placeholder="gerente@exemplo.com"
+                                        aria-invalid={!!errors.gerenteEmail}
+                                        className="mt-1"
+                                    />
+                                    {errors.gerenteEmail && <FieldDescription className="text-red-500 text-sm mt-1">{errors.gerenteEmail}</FieldDescription>}
+                                </Field>
+                            </FieldGroup>
+                        )}
 
                         {message && (
                             <div className={`p-4 rounded-md text-sm font-medium ${message.includes('Erro') || message.includes('inválido')
@@ -415,7 +433,7 @@ export function EstabelecimentoForm({ estabelecimento }: { estabelecimento?: any
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => router.push('/restrito/admin')}
+                                onClick={() => router.push(returnUrl)}
                                 className="w-full py-3 text-base font-medium"
                             >
                                 Cancelar
