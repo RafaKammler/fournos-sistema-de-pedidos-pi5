@@ -12,7 +12,7 @@ type FormState = {
     email: string
     senha?: string
     perfil: string
-    estabelecimentoId: string
+    estabelecimentoIds: string[] // Agora é um array para suportar múltiplos
 }
 
 export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any, estabelecimentos?: any[] }) {
@@ -24,7 +24,8 @@ export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any,
         email: usuario?.email || "",
         senha: "",
         perfil: usuario?.perfil || "USUARIO",
-        estabelecimentoId: usuario?.gerente?.estabelecimentos?.[0]?.id?.toString() || ""
+        // Mapeia todos os estabelecimentos vinculados para extrair apenas os IDs
+        estabelecimentoIds: usuario?.gerente?.estabelecimentos?.map((e: any) => e.id.toString()) || []
     })
 
     const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
@@ -34,14 +35,29 @@ export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any,
     function handleChange<K extends keyof FormState>(key: K, value: FormState[K]) {
         setForm((s) => {
             const newState = { ...s, [key]: value };
-            // Limpa o estabelecimento caso o perfil deixe de ser GERENTE
+            // Limpa os estabelecimentos caso o perfil deixe de ser GERENTE
             if (key === 'perfil' && value !== 'GERENTE') {
-                newState.estabelecimentoId = "";
+                newState.estabelecimentoIds = [];
             }
             return newState;
         })
         setErrors((e) => ({ ...e, [key]: undefined }))
         setMessage(null)
+    }
+
+    // Função específica para lidar com os checkboxes
+    function handleCheckboxChange(estId: string) {
+        setForm((s) => {
+            const atuais = s.estabelecimentoIds;
+            if (atuais.includes(estId)) {
+                // Se já tem, remove
+                return { ...s, estabelecimentoIds: atuais.filter(id => id !== estId) };
+            } else {
+                // Se não tem, adiciona
+                return { ...s, estabelecimentoIds: [...atuais, estId] };
+            }
+        })
+        setErrors((e) => ({ ...e, estabelecimentoIds: undefined }))
     }
 
     function validate() {
@@ -51,8 +67,9 @@ export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any,
         if (!isEditing && !form.senha) e.senha = "Senha é obrigatória."
         if (form.senha && form.senha.length < 6) e.senha = "A senha deve ter pelo menos 6 caracteres."
 
-        if (form.perfil === "GERENTE" && !form.estabelecimentoId) {
-            e.estabelecimentoId = "Selecione o estabelecimento que este gerente irá administrar."
+        // Validação atualizada para a lista de checkboxes
+        if (form.perfil === "GERENTE" && form.estabelecimentoIds.length === 0) {
+            e.estabelecimentoIds = "Selecione pelo menos um estabelecimento que este gerente irá administrar."
         }
 
         setErrors(e)
@@ -145,22 +162,35 @@ export function UsuarioForm({ usuario, estabelecimentos = [] }: { usuario?: any,
 
                                 {form.perfil === "GERENTE" && (
                                     <Field className="sm:col-span-2 border-t border-border pt-4 mt-2">
-                                        <FieldLabel htmlFor="estabelecimentoId" className="font-medium">Estabelecimento Gerenciado</FieldLabel>
-                                        <select
-                                            id="estabelecimentoId"
-                                            name="estabelecimentoId"
-                                            value={form.estabelecimentoId}
-                                            onChange={(e) => handleChange("estabelecimentoId", e.target.value)}
-                                            className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            <option value="">Selecione um estabelecimento...</option>
+                                        <FieldLabel className="font-medium mb-3 block">Estabelecimentos Gerenciados</FieldLabel>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1">
                                             {estabelecimentos.map((est) => (
-                                                <option key={est.id} value={est.id}>
-                                                    {est.nome} (CNPJ: {est.cnpj})
-                                                </option>
+                                                <label
+                                                    key={est.id}
+                                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                                                        form.estabelecimentoIds.includes(est.id.toString())
+                                                            ? 'bg-primary/10 border-primary shadow-sm'
+                                                            : 'hover:bg-muted/50'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                        checked={form.estabelecimentoIds.includes(est.id.toString())}
+                                                        onChange={() => handleCheckboxChange(est.id.toString())}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium">{est.nome}</span>
+                                                        <span className="text-xs text-muted-foreground">CNPJ: {est.cnpj}</span>
+                                                    </div>
+                                                </label>
                                             ))}
-                                        </select>
-                                        {errors.estabelecimentoId && <FieldDescription className="text-destructive text-sm mt-1">{errors.estabelecimentoId}</FieldDescription>}
+                                            {estabelecimentos.length === 0 && (
+                                                <p className="text-sm text-muted-foreground">Nenhum estabelecimento cadastrado.</p>
+                                            )}
+                                        </div>
+                                        {errors.estabelecimentoIds && <FieldDescription className="text-destructive text-sm mt-2">{errors.estabelecimentoIds}</FieldDescription>}
                                     </Field>
                                 )}
                             </div>

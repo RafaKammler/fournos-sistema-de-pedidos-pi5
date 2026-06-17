@@ -18,7 +18,17 @@ export const UsuarioService = {
     async buscarPorId(id: number) {
         return prisma.usuario.findUnique({
             where: { id },
-            select: { id: true, nome: true, email: true, perfil: true }
+            select: {
+                id: true,
+                nome: true,
+                email: true,
+                perfil: true,
+                gerente: {
+                    include: {
+                        estabelecimentos: true
+                    }
+                }
+            }
         });
     },
 
@@ -45,8 +55,16 @@ export const UsuarioService = {
         }
 
         if (data.perfil === "GERENTE") {
+            const idsParaConectar = Array.isArray(data.estabelecimentoIds)
+                ? data.estabelecimentoIds.map((id: string) => ({ id: parseInt(id) }))
+                : [];
+
             userData.gerente = {
-                create: {}
+                create: {
+                    estabelecimentos: {
+                        connect: idsParaConectar
+                    }
+                }
             }
         }
 
@@ -55,12 +73,6 @@ export const UsuarioService = {
             include: { gerente: true }
         });
 
-        if (novoUsuario.perfil === "GERENTE" && data.estabelecimentoId && novoUsuario.gerente) {
-            await prisma.estabelecimento.update({
-                where: { id: parseInt(data.estabelecimentoId) },
-                data: { gerenteId: novoUsuario.gerente.id }
-            });
-        }
 
         return novoUsuario;
     },
@@ -89,10 +101,22 @@ export const UsuarioService = {
         }
 
         if (data.perfil === "GERENTE") {
+            const idsParaConectar = Array.isArray(data.estabelecimentoIds)
+                ? data.estabelecimentoIds.map((id: string) => ({ id: parseInt(id) }))
+                : [];
+
             updateData.gerente = {
                 upsert: {
-                    create: {},
-                    update: {}
+                    create: {
+                        estabelecimentos: {
+                            connect: idsParaConectar
+                        }
+                    },
+                    update: {
+                        estabelecimentos: {
+                            set: idsParaConectar // O 'set' remove as conexões antigas e aplica apenas as marcadas no checkbox
+                        }
+                    }
                 }
             }
         }
@@ -103,12 +127,7 @@ export const UsuarioService = {
             include: { gerente: true }
         });
 
-        if (usuarioAtualizado.perfil === "GERENTE" && data.estabelecimentoId && usuarioAtualizado.gerente) {
-            await prisma.estabelecimento.update({
-                where: { id: parseInt(data.estabelecimentoId) },
-                data: { gerenteId: usuarioAtualizado.gerente.id }
-            });
-        } else if (data.perfil !== "GERENTE") {
+        if (data.perfil !== "GERENTE") {
             const isManager = await prisma.gerente.findUnique({ where: { usuarioId: id } })
             if (isManager) {
                 await prisma.gerente.delete({ where: { usuarioId: id } })
