@@ -13,7 +13,8 @@ export async function POST(req: Request) {
         const telefone = formData.get("telefone") as string
         const gerenteEmail = formData.get("gerenteEmail") as string | null
         const imagem = formData.get("imagem") as File | null
-        const cep =  formData.get("cep") as String | null
+        const cep =  formData.get("cep") as string | null
+        const categoria = formData.get("categoria") as string;
 
         if (!nome || !descricao || !cnpj || !telefone || !imagem) {
             return NextResponse.json({ message: "Campos obrigatórios faltando, incluindo a imagem." }, { status: 400 })
@@ -66,10 +67,12 @@ export async function POST(req: Request) {
             data: {
                 nome,
                 descricao,
+                categoria: categoria as any,
                 cnpj,
                 telefone,
                 caminhoImagem,
-                cep,
+                cep: cep || "",
+                // ...
 
                 ...(idDoGerenteParaConectar && {
                     gerentes: {
@@ -84,7 +87,7 @@ export async function POST(req: Request) {
             { status: 201 }
         )
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao cadastrar estabelecimento:", error)
         return NextResponse.json(
             { message: "Erro interno no servidor ao tentar salvar os dados." },

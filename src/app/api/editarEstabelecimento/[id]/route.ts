@@ -30,6 +30,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const formData = await req.formData()
         const nome = formData.get("nome") as string
         const descricao = formData.get("descricao") as string
+        const categoria = formData.get("categoria") as string;
         let cnpj = formData.get("cnpj") as string | null
         const telefone = formData.get("telefone") as string
         const imagem = formData.get("imagem") as File | null
@@ -72,6 +73,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const updateData: any = {
             nome,
             descricao,
+            categoria: categoria as any,
             telefone,
             cep: cep || undefined, // Apenas atualiza se não for nulo
             ...(caminhoImagem && { caminhoImagem }) // Só atualiza a imagem se uma nova for enviada

@@ -32,13 +32,22 @@ enum StatusPedido {
   CANCELADO
 }
 
+enum CategoriaEstabelecimento {
+  LANCHES
+  REFEICOES
+  SALGADOS
+  DOCES
+  BEBIDAS
+  SAUDAVEL
+}
+
 model Usuario {
-  id           Int       @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   nome         String
-  email        String    @unique
+  email        String        @unique
   senha        String
   perfil       Perfil
-  dataCadastro DateTime  @default(now())
+  dataCadastro DateTime      @default(now())
   gerente      Gerente?
   pedidos      Pedido[]
   notificacoes Notificacao[]
@@ -53,21 +62,23 @@ model Gerente {
 }
 
 model Estabelecimento {
-  id            Int           @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   nome          String
   descricao     String
-  cnpj          String        @unique
+  cnpj          String   @unique
   telefone      String
   caminhoImagem String
   cep           String
-  dataCadastro  DateTime      @default(now())
+  dataCadastro  DateTime @default(now())
   gerenteId     Int?
-  gerente       Gerente?      @relation(fields: [gerenteId], references: [id], onDelete: SetNull)
+  gerente       Gerente? @relation(fields: [gerenteId], references: [id], onDelete: SetNull)
 
-  produtos      Produto[]
-  notificacoes  Notificacao[]
-  complementos  Complemento[]
-  pedidos       Pedido[]
+  produtos     Produto[]
+  notificacoes Notificacao[]
+  complementos Complemento[]
+  pedidos      Pedido[]
+
+  categoria CategoriaEstabelecimento @default(LANCHES)
 }
 
 model Produto {
@@ -125,16 +136,16 @@ model Pedido {
   estabelecimentoId Int
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
 
-  dataPedido        DateTime        @default(now())
-  itens             ItemPedido[]
+  dataPedido DateTime     @default(now())
+  itens      ItemPedido[]
 }
 
 model ItemPedido {
-  id          Int     @id @default(autoincrement())
-  quantidade  Int
-  precoUn     Float
-  pedidoId    Int
-  pedido      Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  produtoId   Int
-  produto     Produto @relation(fields: [produtoId], references: [id])
+  id         Int     @id @default(autoincrement())
+  quantidade Int
+  precoUn    Float
+  pedidoId   Int
+  pedido     Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId  Int
+  produto    Produto @relation(fields: [produtoId], references: [id])
 }

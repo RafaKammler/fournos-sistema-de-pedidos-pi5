@@ -6,10 +6,12 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { CATEGORIAS_ESTABELECIMENTO } from "@/lib/constants" // <-- 1. Importação adicionada
 
 type FormState = {
     nome: string
     descricao: string
+    categoria: string // <-- 2. Tipo adicionado
     cnpj: string
     telefone: string
     rua: string
@@ -23,7 +25,7 @@ export function EstabelecimentoForm({
                                         estabelecimento,
                                         returnUrl = "/restrito/admin",
                                         isGerente = false,
-                                        perfil = "ADMIN" // Padrão ADMIN para não quebrar as telas existentes do administrador
+                                        perfil = "ADMIN"
                                     }: {
     estabelecimento?: any,
     returnUrl?: string,
@@ -63,6 +65,7 @@ export function EstabelecimentoForm({
     const [form, setForm] = useState<FormState>({
         nome: estabelecimento?.nome || "",
         descricao: estabelecimento?.descricao || "",
+        categoria: estabelecimento?.categoria || "LANCHES", // <-- 3. Estado inicial com valor padrão
         cnpj: estabelecimento?.cnpj ? maskCNPJ(estabelecimento.cnpj) : "",
         telefone: estabelecimento?.telefone ? maskTelefone(estabelecimento.telefone) : "",
         rua: estabelecimento?.rua || "",
@@ -166,6 +169,7 @@ export function EstabelecimentoForm({
             const formData = new FormData()
             formData.append("nome", form.nome.trim())
             formData.append("descricao", form.descricao.trim())
+            formData.append("categoria", form.categoria) // <-- 4. Categoria adicionada no envio
             formData.append("cnpj", cleanDigits(form.cnpj))
             formData.append("telefone", cleanDigits(form.telefone))
             formData.append("cep", cleanDigits(form.cep))
@@ -194,7 +198,7 @@ export function EstabelecimentoForm({
                 throw new Error(body?.message || `Erro: ${res.status}`)
             }
 
-            setMessage(isEditing ? "Estabelecimento updated com sucesso." : "Estabelecimento cadastrado com sucesso.")
+            setMessage(isEditing ? "Estabelecimento atualizado com sucesso." : "Estabelecimento cadastrado com sucesso.")
 
             setTimeout(() => {
                 router.push(returnUrl)
@@ -210,7 +214,6 @@ export function EstabelecimentoForm({
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* A Navbar voltou para cá, agora controlada dinamicamente */}
             <Navbar
                 perfil={perfil}
                 logo={{
@@ -296,6 +299,25 @@ export function EstabelecimentoForm({
                                     className="mt-1"
                                 />
                                 {errors.nome && <FieldDescription className="text-red-500 text-sm mt-1">{errors.nome}</FieldDescription>}
+                            </Field>
+
+                            {/* 5. Select de Categoria adicionado aqui! */}
+                            <Field>
+                                <FieldLabel htmlFor="categoria" className="font-medium">Categoria Principal</FieldLabel>
+                                <select
+                                    id="categoria"
+                                    name="categoria"
+                                    value={form.categoria}
+                                    onChange={(e) => handleChange("categoria", e.target.value)}
+                                    className="mt-1 w-full px-3 py-2 text-sm border border-input bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
+                                    required
+                                >
+                                    {CATEGORIAS_ESTABELECIMENTO.map((cat) => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.nome}
+                                        </option>
+                                    ))}
+                                </select>
                             </Field>
 
                             <Field>

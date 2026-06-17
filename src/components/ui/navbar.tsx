@@ -37,16 +37,15 @@ interface Notificacao {
     pedidoId?: number;
 }
 
-const AnimatedNavLink = ({ item, isActive = false }: { item: MenuItem; isActive?: boolean; }) => {
+const AnimatedNavLink = ({ item }: { item: MenuItem; }) => {
     return (
         <a href={item.url} className="relative group flex flex-col overflow-hidden h-5 items-center" style={{ perspective: "100px" }}>
-            <span className={`text-sm tracking-wide transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`} style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }}>
+            <span className="text-sm tracking-wide font-bold text-foreground transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0" style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }}>
                 {item.title}
             </span>
-            <span className={`absolute top-full text-sm tracking-wide font-medium text-foreground transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-100 opacity-0 translate-y-0`} style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }} aria-hidden>
+            <span className="absolute top-full text-sm tracking-wide font-bold text-primary transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-100 opacity-0 translate-y-0" style={{ transitionTimingFunction: "cubic-bezier(0.76, 0, 0.24, 1)" }} aria-hidden>
                 {item.title}
             </span>
-            {isActive && <span className="absolute bottom-0 left-0 w-full h-px bg-foreground" />}
         </a>
     );
 };
@@ -349,7 +348,7 @@ const Navbar = ({
 
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8">
                         {menu.map((item, i) => (
-                            <AnimatedNavLink key={item.title} item={item} isActive={i === 0} />
+                            <AnimatedNavLink key={item.title} item={item} />
                         ))}
                     </div>
 
