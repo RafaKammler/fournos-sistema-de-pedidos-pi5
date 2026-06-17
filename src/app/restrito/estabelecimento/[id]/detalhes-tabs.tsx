@@ -5,15 +5,28 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-    ArrowLeft, Package, MapPin, Phone, FileText, Mail, Plus, UtensilsCrossed, Edit
+    ArrowLeft, Package, MapPin, Phone, FileText, Mail, Plus, UtensilsCrossed, Edit, ClipboardList, Search, Filter, Calendar
 } from "lucide-react"
 
 export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
     const [activeTab, setActiveTab] = useState("produtos")
     const [isDeletingProd, setIsDeletingProd] = useState<number | null>(null)
+    const [searchProduto, setSearchProduto] = useState("")
+    const [statusProduto, setStatusProduto] = useState("todos")
     const router = useRouter()
 
     const produtos = estabelecimento.produtos || []
+
+    const filteredProdutos = produtos.filter((prod: any) => {
+        const matchesSearch = prod.nome.toLowerCase().includes(searchProduto.toLowerCase()) ||
+            prod.descricao.toLowerCase().includes(searchProduto.toLowerCase())
+
+        const matchesStatus = statusProduto === "todos" ? true :
+            statusProduto === "disponivel" ? prod.disponivel === true :
+                statusProduto === "esgotado" ? prod.disponivel === false : true
+
+        return matchesSearch && matchesStatus
+    })
 
     function formatarTelefone(telefone: string) {
         if (!telefone) return ""
@@ -77,7 +90,7 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                 <div className="flex flex-col md:flex-row gap-8">
                     <div className="w-full md:w-1/3 flex flex-col gap-4">
                         <img
-                            src={estabelecimento.caminhoImagem || "/img.png"}
+                            src={estabelecimento.caminhoImagem || "/favicon.ico"}
                             alt={estabelecimento.nome}
                             className="w-full aspect-square object-cover rounded-xl border border-border shadow-sm bg-muted"
                         />
@@ -138,6 +151,15 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                         <Package className="size-4" />
                         Produtos
                     </button>
+                    <button
+                        onClick={() => setActiveTab("pedidos")}
+                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                            activeTab === "pedidos" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                        }`}
+                    >
+                        <ClipboardList className="size-4" />
+                        Histórico de Pedidos
+                    </button>
                 </div>
 
                 <div className="bg-card text-card-foreground shadow-sm ring-1 ring-border rounded-xl p-6 min-h-[400px]">
@@ -156,6 +178,30 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                 </a>
                             </div>
 
+                            {produtos.length > 0 && (
+                                <div className="flex flex-col sm:flex-row gap-4 bg-muted/30 p-4 rounded-xl border border-border">
+                                    <div className="flex-1 relative">
+                                        <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar produto por nome ou descrição..."
+                                            value={searchProduto}
+                                            onChange={(e) => setSearchProduto(e.target.value)}
+                                            className="w-full bg-background border border-input rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        />
+                                    </div>
+                                    <select
+                                        value={statusProduto}
+                                        onChange={(e) => setStatusProduto(e.target.value)}
+                                        className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-48"
+                                    >
+                                        <option value="todos">Status (Todos)</option>
+                                        <option value="disponivel">Disponíveis</option>
+                                        <option value="esgotado">Esgotados</option>
+                                    </select>
+                                </div>
+                            )}
+
                             {produtos.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
                                     <UtensilsCrossed className="size-12 text-muted-foreground mb-4 opacity-50" />
@@ -165,9 +211,18 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                         <Button variant="outline">Adicionar primeiro produto</Button>
                                     </a>
                                 </div>
+                            ) : filteredProdutos.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                    <Search className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                    <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros de busca para encontrar o que procura.</p>
+                                    <Button variant="link" onClick={() => { setSearchProduto(""); setStatusProduto("todos"); }} className="mt-2">
+                                        Limpar filtros
+                                    </Button>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {produtos.map((prod: any) => (
+                                    {filteredProdutos.map((prod: any) => (
                                         <div
                                             key={prod.id}
                                             onClick={() => router.push(`/restrito/produto/${prod.id}`)}
@@ -175,7 +230,7 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                         >
                                             <div className="aspect-video w-full relative bg-muted border-b border-border">
                                                 <img
-                                                    src={prod.caminhoImagem || "/img.png"}
+                                                    src={prod.caminhoImagem || "/favicon.ico"}
                                                     alt={prod.nome}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -213,6 +268,56 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {activeTab === "pedidos" && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold">Histórico de Pedidos</h2>
+                                    <p className="text-sm text-muted-foreground">Visualize e filtre os pedidos realizados neste estabelecimento.</p>
+                                </div>
+                                <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                                    <Filter className="size-4" />
+                                    Exportar Relatório
+                                </Button>
+                            </div>
+
+                            <div className="flex flex-col lg:flex-row gap-4 bg-muted/30 p-4 rounded-xl border border-border">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por código ou nome do cliente..."
+                                        className="w-full bg-background border border-input rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    />
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <select className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-48">
+                                        <option value="">Status (Todos)</option>
+                                        <option value="pendente">Pendente</option>
+                                        <option value="preparando">Em Preparo</option>
+                                        <option value="concluido">Concluído</option>
+                                        <option value="cancelado">Cancelado</option>
+                                    </select>
+                                    <div className="relative w-full sm:w-48">
+                                        <Calendar className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                        <select className="w-full bg-background border border-input rounded-md pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                            <option value="hoje">Hoje</option>
+                                            <option value="7dias">Últimos 7 dias</option>
+                                            <option value="30dias">Últimos 30 dias</option>
+                                            <option value="todos">Todo o período</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                <ClipboardList className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">Nenhum pedido encontrado</h3>
+                                <p className="text-sm text-muted-foreground mt-1 max-w-md">O histórico e o rastreamento de pedidos serão ativados assim que a funcionalidade for implementada no banco de dados.</p>
+                            </div>
                         </div>
                     )}
                 </div>

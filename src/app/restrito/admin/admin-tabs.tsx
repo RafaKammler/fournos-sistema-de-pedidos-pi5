@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Users, Plus, MapPin, Phone, Shield, UserCog, User, Bell, Send, X, BellRing, Layers } from "lucide-react"
+import { Building2, Users, Plus, MapPin, Phone, Shield, UserCog, User, Bell, Send, X, BellRing, Layers, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
@@ -17,8 +17,11 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
     const [showComplementoModal, setShowComplementoModal] = useState(false)
     const [isSavingComplemento, setIsSavingComplemento] = useState(false)
 
-    // Novo estado para o filtro de complementos
+    // Estados para filtros
     const [selectedEstComplemento, setSelectedEstComplemento] = useState<string>("")
+    const [searchEst, setSearchEst] = useState("")
+    const [searchUser, setSearchUser] = useState("")
+    const [filterPerfil, setFilterPerfil] = useState("todos")
 
     const router = useRouter()
 
@@ -34,10 +37,27 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
         estabelecimentoId: ""
     })
 
-    // Filtra os complementos com base no estabelecimento selecionado
+    // Lógica de Filtragem
     const filteredComplementos = selectedEstComplemento
         ? complementos.filter(comp => comp.estabelecimentoId.toString() === selectedEstComplemento)
         : []
+
+    const filteredEstabelecimentos = estabelecimentos.filter((est: any) => {
+        const query = searchEst.toLowerCase()
+        return (
+            est.nome.toLowerCase().includes(query) ||
+            (est.cnpj && est.cnpj.includes(query)) ||
+            (est.descricao && est.descricao.toLowerCase().includes(query))
+        )
+    })
+
+    const filteredUsuarios = usuarios.filter((user: any) => {
+        const query = searchUser.toLowerCase()
+        const matchesSearch = user.nome.toLowerCase().includes(query) || user.email.toLowerCase().includes(query)
+        const matchesPerfil = filterPerfil === "todos" ? true : user.perfil === filterPerfil.toUpperCase()
+
+        return matchesSearch && matchesPerfil
+    })
 
     function formatarTelefone(telefone: string) {
         if (!telefone) return ""
@@ -228,6 +248,8 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
             </div>
 
             <div className="bg-card text-card-foreground shadow-sm ring-1 ring-border rounded-xl p-6 min-h-[400px]">
+
+                {/* ABA ESTABELECIMENTOS */}
                 {activeTab === "estabelecimentos" && (
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -253,6 +275,21 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                             </div>
                         </div>
 
+                        {estabelecimentos.length > 0 && (
+                            <div className="flex flex-col sm:flex-row gap-4 bg-muted/30 p-4 rounded-xl border border-border">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por nome, descrição ou CNPJ..."
+                                        value={searchEst}
+                                        onChange={(e) => setSearchEst(e.target.value)}
+                                        className="w-full bg-background border border-input rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {estabelecimentos.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
                                 <Building2 className="size-12 text-muted-foreground mb-4" />
@@ -262,9 +299,18 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                                     <Button variant="outline">Cadastrar o primeiro</Button>
                                 </a>
                             </div>
+                        ) : filteredEstabelecimentos.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                <Search className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">Nenhum resultado</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Nenhum estabelecimento encontrado com os filtros informados.</p>
+                                <Button variant="link" onClick={() => setSearchEst("")} className="mt-2">
+                                    Limpar busca
+                                </Button>
+                            </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {estabelecimentos.map((est) => (
+                                {filteredEstabelecimentos.map((est: any) => (
                                     <div
                                         key={est.id}
                                         onClick={() => router.push(`/restrito/estabelecimento/${est.id}`)}
@@ -285,7 +331,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                                         <div className="p-5 flex-1 flex flex-col gap-4">
                                             <div className="flex items-start gap-4">
                                                 <img
-                                                    src={est.caminhoImagem || "/img.png"}
+                                                    src={est.caminhoImagem || "/favicon.ico"}
                                                     alt={est.nome}
                                                     className="size-16 rounded-lg object-cover ring-1 ring-border bg-muted"
                                                 />
@@ -336,6 +382,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                     </div>
                 )}
 
+                {/* ABA USUARIOS */}
                 {activeTab === "usuarios" && (
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -351,15 +398,49 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                             </a>
                         </div>
 
+                        {usuarios.length > 0 && (
+                            <div className="flex flex-col sm:flex-row gap-4 bg-muted/30 p-4 rounded-xl border border-border">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por nome ou e-mail..."
+                                        value={searchUser}
+                                        onChange={(e) => setSearchUser(e.target.value)}
+                                        className="w-full bg-background border border-input rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    />
+                                </div>
+                                <select
+                                    value={filterPerfil}
+                                    onChange={(e) => setFilterPerfil(e.target.value)}
+                                    className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-48"
+                                >
+                                    <option value="todos">Todos os Perfis</option>
+                                    <option value="admin">Administrador</option>
+                                    <option value="gerente">Gerente</option>
+                                    <option value="usuario">Cliente (Usuário)</option>
+                                </select>
+                            </div>
+                        )}
+
                         {usuarios.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/30">
                                 <Users className="size-12 text-muted-foreground mb-4" />
                                 <h3 className="text-lg font-medium">Nenhum usuário</h3>
                                 <p className="text-sm text-muted-foreground mt-1 mb-4">Ainda não existem outros usuários cadastrados.</p>
                             </div>
+                        ) : filteredUsuarios.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                <Search className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">Nenhum usuário encontrado</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Não encontramos resultados com os filtros informados.</p>
+                                <Button variant="link" onClick={() => { setSearchUser(""); setFilterPerfil("todos"); }} className="mt-2">
+                                    Limpar filtros
+                                </Button>
+                            </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                {usuarios.map((user) => (
+                                {filteredUsuarios.map((user: any) => (
                                     <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className={`p-3 rounded-full shrink-0 ${
@@ -408,6 +489,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                     </div>
                 )}
 
+                {/* ABA COMPLEMENTOS */}
                 {activeTab === "complementos" && (
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -455,7 +537,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredComplementos.map((comp) => (
+                                {filteredComplementos.map((comp: any) => (
                                     <div key={comp.id} className="flex flex-col justify-between p-4 rounded-xl border border-border bg-background shadow-sm hover:shadow-md transition-all">
                                         <div className="mb-4">
                                             <div className="flex justify-between items-start gap-2">
@@ -483,6 +565,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                 )}
             </div>
 
+            {/* MODAL NOTIFICACAO */}
             {showNotificacaoModal !== false && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-card text-card-foreground border border-border shadow-xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -552,6 +635,7 @@ export function AdminTabs({ estabelecimentos, usuarios = [], complementos = [] }
                 </div>
             )}
 
+            {/* MODAL COMPLEMENTO */}
             {showComplementoModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-card text-card-foreground border border-border shadow-xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
