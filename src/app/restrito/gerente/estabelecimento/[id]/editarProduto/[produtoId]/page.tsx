@@ -13,6 +13,7 @@ export default async function EditarProdutoGerentePage({
     const estabelecimentoId = parseInt(id)
     const idDoProduto = parseInt(produtoId)
 
+    
     // 2. Validação de Sessão
     const session = await getSession()
     if (!session || session.perfil !== "GERENTE") {

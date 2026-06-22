@@ -5,7 +5,9 @@ import { Navbar } from "@/components/ui/navbar"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import {redirect, useRouter} from "next/navigation"
+import {getSession} from "@/lib/auth";
+
 
 type FormState = {
     nome: string
@@ -115,6 +117,7 @@ export function ProdutoForm({ produto, estabelecimentoId, returnUrl }: { produto
         } finally {
             setLoading(false)
         }
+
     }
 
     return (

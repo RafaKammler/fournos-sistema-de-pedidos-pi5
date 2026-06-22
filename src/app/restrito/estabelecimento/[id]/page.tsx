@@ -21,7 +21,19 @@ export default async function EstabelecimentoDetalhesPage({ params }: { params: 
         where: { id: estabelecimentoId },
         include: {
             produtos: {
-                orderBy: {dataCadastro: 'desc'}
+                orderBy: { dataCadastro: 'desc' }
+            },
+            pedidos: {
+                include: {
+                    usuario: {
+                        select: {
+                            nome: true
+                        }
+                    }
+                },
+                orderBy: {
+                    dataPedido: 'desc'
+                }
             }
         }
     })

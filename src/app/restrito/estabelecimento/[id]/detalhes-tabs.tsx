@@ -5,17 +5,26 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-    ArrowLeft, Package, MapPin, Phone, FileText, Mail, Plus, UtensilsCrossed, Edit, ClipboardList, Search, Filter, Calendar
+    ArrowLeft, Package, MapPin, Phone, FileText, Plus, UtensilsCrossed, Edit, ClipboardList, Search, Filter, Calendar
 } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
     const [activeTab, setActiveTab] = useState("produtos")
     const [isDeletingProd, setIsDeletingProd] = useState<number | null>(null)
+
     const [searchProduto, setSearchProduto] = useState("")
     const [statusProduto, setStatusProduto] = useState("todos")
+
+    const [searchPedido, setSearchPedido] = useState("")
+    const [statusPedido, setStatusPedido] = useState("todos")
+    const [dataPedidoFilter, setDataPedidoFilter] = useState("todos")
+
     const router = useRouter()
 
     const produtos = estabelecimento.produtos || []
+    const pedidos = estabelecimento.pedidos || []
 
     const filteredProdutos = produtos.filter((prod: any) => {
         const matchesSearch = prod.nome.toLowerCase().includes(searchProduto.toLowerCase()) ||
@@ -26,6 +35,33 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                 statusProduto === "esgotado" ? prod.disponivel === false : true
 
         return matchesSearch && matchesStatus
+    })
+
+    const filteredPedidos = pedidos.filter((pedido: any) => {
+        const searchLower = searchPedido.toLowerCase()
+        const clientName = pedido.usuario?.nome || ""
+        const matchesSearch = pedido.id.toString().includes(searchLower) ||
+            clientName.toLowerCase().includes(searchLower)
+
+        const matchesStatus = statusPedido === "todos" ? true : pedido.status === statusPedido.toUpperCase()
+
+        const dataPed = new Date(pedido.dataPedido)
+        const hoje = new Date()
+        let matchesData = true
+
+        if (dataPedidoFilter === "hoje") {
+            matchesData = dataPed.toDateString() === hoje.toDateString()
+        } else if (dataPedidoFilter === "7dias") {
+            const seteDiasAtras = new Date()
+            seteDiasAtras.setDate(hoje.getDate() - 7)
+            matchesData = dataPed >= seteDiasAtras
+        } else if (dataPedidoFilter === "30dias") {
+            const trintaDiasAtras = new Date()
+            trintaDiasAtras.setDate(hoje.getDate() - 30)
+            matchesData = dataPed >= trintaDiasAtras
+        }
+
+        return matchesSearch && matchesStatus && matchesData
     })
 
     function formatarTelefone(telefone: string) {
@@ -54,6 +90,34 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     }
 
+    function formatarDataHora(dataIso: string) {
+        return new Date(dataIso).toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+        })
+    }
+
+    function BadgeStatusPedido({ status }: { status: string }) {
+        const styles: any = {
+            PENDENTE: "bg-yellow-500/10 text-yellow-600 ring-yellow-500/20",
+            PREPARANDO: "bg-blue-500/10 text-blue-600 ring-blue-500/20",
+            PRONTO: "bg-purple-500/10 text-purple-600 ring-purple-500/20",
+            FINALIZADO: "bg-green-500/10 text-green-600 ring-green-500/20",
+            CANCELADO: "bg-red-500/10 text-red-600 ring-red-500/20"
+        }
+        const labels: any = {
+            PENDENTE: "Pendente",
+            PREPARANDO: "Em Preparo",
+            PRONTO: "Pronto",
+            FINALIZADO: "Finalizado",
+            CANCELADO: "Cancelado"
+        }
+        return (
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${styles[status] || "bg-muted text-muted-foreground"}`}>
+                {labels[status] || status}
+            </span>
+        )
+    }
+
     async function handleExcluirProduto(id: number, nome: string) {
         if (!confirm(`Tem certeza que deseja excluir o produto "${nome}"?`)) return
 
@@ -72,6 +136,43 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
         } finally {
             setIsDeletingProd(null)
         }
+    }
+
+    function exportarParaPDF() {
+        if (filteredPedidos.length === 0) {
+            toast.warning("Não há pedidos para exportar com os filtros atuais.")
+            return
+        }
+
+        const doc = new jsPDF()
+
+        doc.setFontSize(18)
+        doc.text(`Relatório de Pedidos - ${estabelecimento.nome}`, 14, 22)
+
+        doc.setFontSize(11)
+        doc.setTextColor(100)
+        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 30)
+
+        const tableColumn = ["ID", "Cliente", "Data", "Status", "Total"]
+
+        const tableRows = filteredPedidos.map((pedido: any) => [
+            `#${pedido.id}`,
+            pedido.usuario?.nome || "Desconhecido",
+            formatarDataHora(pedido.dataPedido),
+            pedido.status,
+            formatarMoeda(pedido.total)
+        ])
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+            theme: 'grid',
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [41, 128, 185] }
+        })
+
+        doc.save(`relatorio-pedidos-${estabelecimento.nome.replace(/\s+/g, '-').toLowerCase()}.pdf`)
     }
 
     return (
@@ -278,9 +379,9 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                     <h2 className="text-lg font-semibold">Histórico de Pedidos</h2>
                                     <p className="text-sm text-muted-foreground">Visualize e filtre os pedidos realizados neste estabelecimento.</p>
                                 </div>
-                                <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                                <Button variant="outline" onClick={exportarParaPDF} className="gap-2 w-full sm:w-auto">
                                     <Filter className="size-4" />
-                                    Exportar Relatório
+                                    Exportar Relatório PDF
                                 </Button>
                             </div>
 
@@ -289,35 +390,86 @@ export function DetalhesTabs({ estabelecimento }: { estabelecimento: any }) {
                                     <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                                     <input
                                         type="text"
-                                        placeholder="Buscar por código ou nome do cliente..."
+                                        placeholder="Buscar por ID do pedido ou nome do cliente..."
+                                        value={searchPedido}
+                                        onChange={(e) => setSearchPedido(e.target.value)}
                                         className="w-full bg-background border border-input rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                     />
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <select className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-48">
-                                        <option value="">Status (Todos)</option>
+                                    <select
+                                        value={statusPedido}
+                                        onChange={(e) => setStatusPedido(e.target.value)}
+                                        className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-48"
+                                    >
+                                        <option value="todos">Status (Todos)</option>
                                         <option value="pendente">Pendente</option>
                                         <option value="preparando">Em Preparo</option>
-                                        <option value="concluido">Concluído</option>
+                                        <option value="pronto">Pronto</option>
+                                        <option value="finalizado">Finalizado</option>
                                         <option value="cancelado">Cancelado</option>
                                     </select>
                                     <div className="relative w-full sm:w-48">
                                         <Calendar className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                                        <select className="w-full bg-background border border-input rounded-md pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                        <select
+                                            value={dataPedidoFilter}
+                                            onChange={(e) => setDataPedidoFilter(e.target.value)}
+                                            className="w-full bg-background border border-input rounded-md pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        >
+                                            <option value="todos">Todo o período</option>
                                             <option value="hoje">Hoje</option>
                                             <option value="7dias">Últimos 7 dias</option>
                                             <option value="30dias">Últimos 30 dias</option>
-                                            <option value="todos">Todo o período</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
-                                <ClipboardList className="size-12 text-muted-foreground mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium">Nenhum pedido encontrado</h3>
-                                <p className="text-sm text-muted-foreground mt-1 max-w-md">O histórico e o rastreamento de pedidos serão ativados assim que a funcionalidade for implementada no banco de dados.</p>
-                            </div>
+                            {pedidos.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                    <ClipboardList className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                    <h3 className="text-lg font-medium">Nenhum pedido encontrado</h3>
+                                    <p className="text-sm text-muted-foreground mt-1 max-w-md">O histórico e o rastreamento de pedidos aparecerão aqui assim que houver atividade neste estabelecimento.</p>
+                                </div>
+                            ) : filteredPedidos.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-xl bg-muted/10">
+                                    <Search className="size-12 text-muted-foreground mb-4 opacity-50" />
+                                    <h3 className="text-lg font-medium">Nenhum pedido encontrado</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">Não encontramos resultados com os filtros informados.</p>
+                                    <Button variant="link" onClick={() => { setSearchPedido(""); setStatusPedido("todos"); setDataPedidoFilter("todos"); }} className="mt-2">
+                                        Limpar filtros
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="border border-border rounded-xl overflow-hidden bg-background">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left text-muted-foreground">
+                                            <thead className="text-xs text-foreground uppercase bg-muted/50 border-b border-border">
+                                            <tr>
+                                                <th scope="col" className="px-6 py-4 font-semibold">ID</th>
+                                                <th scope="col" className="px-6 py-4 font-semibold">Cliente</th>
+                                                <th scope="col" className="px-6 py-4 font-semibold">Data e Hora</th>
+                                                <th scope="col" className="px-6 py-4 font-semibold">Status</th>
+                                                <th scope="col" className="px-6 py-4 font-semibold text-right">Total</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {filteredPedidos.map((pedido: any) => (
+                                                <tr key={pedido.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                                                    <td className="px-6 py-4 font-medium text-foreground">#{pedido.id}</td>
+                                                    <td className="px-6 py-4 font-medium">{pedido.usuario?.nome || "Desconhecido"}</td>
+                                                    <td className="px-6 py-4">{formatarDataHora(pedido.dataPedido)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <BadgeStatusPedido status={pedido.status} />
+                                                    </td>
+                                                    <td className="px-6 py-4 font-bold text-foreground text-right">{formatarMoeda(pedido.total)}</td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

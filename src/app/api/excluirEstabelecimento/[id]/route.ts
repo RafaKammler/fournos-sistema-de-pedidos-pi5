@@ -15,7 +15,15 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         })
 
         return NextResponse.json({ message: "Estabelecimento excluído com sucesso." }, { status: 200 })
-    } catch (error) {
+    } catch (error: any) {
+        if (error.code === 'P2003') {
+            return NextResponse.json(
+                { message: "Não é possível excluir. Existem pedidos registados para este estabelecimento." },
+                { status: 400 }
+            )
+        }
+
+        console.error(error);
         return NextResponse.json({ message: "Erro interno ao tentar excluir." }, { status: 500 })
     }
 }
